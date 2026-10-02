@@ -10,6 +10,8 @@ player, generated entirely in the browser (no backend). Installable as a PWA and
 - Each suspect has one or two clues. Rooms are outlined with dark borders and labeled.
 - The victim was alone with the killer. Once everyone fits, name the killer.
 - Tap a suspect card, then a square, or drag the card onto the grid. Tap a clue to cross it out.
+- Hover a suspect card, or select it, to light up what its clue talks about on the board. Hover a
+  square to see what it is, and a dotted word in a clue to see what it means.
 - Pick the X tool and drag across squares to cross them out. The eraser clears squares; hold it
   to clear the whole board. Undo reverts the last action.
 - "Beside" means directly up, down, left or right, within the same room.
