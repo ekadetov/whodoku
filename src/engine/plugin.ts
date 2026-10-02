@@ -4,6 +4,8 @@ export type ClueScope = 'unary' | 'binary' | 'global'
 
 export type PartialPlacement = (Pos | undefined)[]
 
+export type PaintMode = 'mark' | 'unmark' | 'erase'
+
 export interface ObjectKindDef {
   id: string
   blocking: boolean

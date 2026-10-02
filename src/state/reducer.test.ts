@@ -83,3 +83,88 @@ describe('newGame', () => {
     expect(newGame('2026-10-02', 1000, 'abc').progress.puzzleId).toBe('abc')
   })
 })
+
+describe('tools and history', () => {
+  const at = (r: number, c: number) => ({ r, c })
+  const placed = (suspect: number, r: number, c: number, from = start()) =>
+    reduce(reduce(from, { type: 'select', suspect }), { type: 'place', pos: at(r, c) })
+
+  it('starts on the select tool with an empty history', () => {
+    const state = start()
+    expect(state.tool).toBe('select')
+    expect(state.history).toEqual([])
+  })
+
+  it('switching to a stroke tool clears the selection, and picking a suspect switches back', () => {
+    let state = reduce(start(), { type: 'select', suspect: 2 })
+    state = reduce(state, { type: 'setTool', tool: 'x' })
+    expect(state.tool).toBe('x')
+    expect(state.selected).toBeNull()
+    state = reduce(state, { type: 'select', suspect: 1 })
+    expect(state.tool).toBe('select')
+    expect(state.selected).toBe(1)
+  })
+
+  it('marks every painted cell except those holding a suspect', () => {
+    const state = reduce(placed(0, 1, 1), { type: 'paint', cells: [at(1, 0), at(1, 1), at(1, 2), at(1, 0)], mode: 'mark' })
+    expect(state.progress.marks).toEqual(['1,0', '1,2'])
+  })
+
+  it('unmarks painted cells and leaves other marks alone', () => {
+    let state = reduce(start(), { type: 'paint', cells: [at(0, 0), at(0, 1), at(0, 2)], mode: 'mark' })
+    state = reduce(state, { type: 'paint', cells: [at(0, 0), at(0, 2)], mode: 'unmark' })
+    expect(state.progress.marks).toEqual(['0,1'])
+  })
+
+  it('erases marks and suspects on the painted cells', () => {
+    let state = placed(0, 1, 1)
+    state = placed(1, 2, 2, state)
+    state = reduce(state, { type: 'paint', cells: [at(0, 3)], mode: 'mark' })
+    state = reduce(state, { type: 'paint', cells: [at(0, 3), at(1, 1)], mode: 'erase' })
+    expect(state.progress.marks).toEqual([])
+    expect(state.progress.placements).toEqual({ 1: at(2, 2) })
+  })
+
+  it('treats a whole stroke as one undo step', () => {
+    let state = reduce(start(), { type: 'paint', cells: [at(0, 0), at(0, 1), at(0, 2)], mode: 'mark' })
+    expect(state.history).toHaveLength(1)
+    state = reduce(state, { type: 'undo' })
+    expect(state.progress.marks).toEqual([])
+    expect(state.history).toEqual([])
+  })
+
+  it('undoes a placement back to the previous one', () => {
+    let state = placed(0, 0, 0)
+    state = placed(0, 2, 2, state)
+    state = reduce(state, { type: 'undo' })
+    expect(state.progress.placements).toEqual({ 0: at(0, 0) })
+    expect(state.selected).toBeNull()
+  })
+
+  it('does not record history for a stroke that changes nothing', () => {
+    const state = reduce(start(), { type: 'paint', cells: [at(0, 0)], mode: 'unmark' })
+    expect(state.history).toEqual([])
+    expect(reduce(state, { type: 'undo' })).toEqual(state)
+  })
+
+  it('keeps only the most recent 100 steps', () => {
+    let state = start()
+    for (let i = 0; i < 120; i++) state = reduce(state, { type: 'toggleMark', pos: at(0, i % 2) })
+    expect(state.history).toHaveLength(100)
+  })
+
+  it('can undo a reset', () => {
+    let state = placed(0, 0, 0)
+    state = reduce(state, { type: 'reset' })
+    expect(state.progress.placements).toEqual({})
+    state = reduce(state, { type: 'undo' })
+    expect(state.progress.placements).toEqual({ 0: at(0, 0) })
+  })
+
+  it('ignores painting, undo and tool changes once solved', () => {
+    const solved = reduce(placed(0, 0, 0), { type: 'solved', at: 5000 })
+    expect(reduce(solved, { type: 'paint', cells: [at(1, 1)], mode: 'mark' })).toEqual(solved)
+    expect(reduce(solved, { type: 'undo' })).toEqual(solved)
+    expect(reduce(solved, { type: 'setTool', tool: 'x' })).toEqual(solved)
+  })
+})

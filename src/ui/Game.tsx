@@ -40,7 +40,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const [saved, setSaved] = useState(() => loadState(storage))
   const [game, dispatch] = useReducer(reduce, undefined, () =>
     saved.today?.dateKey === dateKey && saved.today.puzzleId === puzzleId
-      ? { progress: saved.today, selected: null }
+      ? { ...newGame(dateKey, now(), puzzleId), progress: saved.today }
       : newGame(dateKey, now(), puzzleId),
   )
   const [notice, setNotice] = useState('')
