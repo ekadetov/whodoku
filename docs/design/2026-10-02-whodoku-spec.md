@@ -58,9 +58,10 @@ the public glossary.
 ### 3.4 "Alone" and "beside"
 
 - Two people in a room are "alone together". Three or more are not.
-- "Beside X" means orthogonally adjacent (up, down, left, right) and in the same room.
-  Diagonals do not count. "Beside an object" is defined the same way, and a suspect standing on
-  an object is not beside it.
+- "Beside an object" means an orthogonally adjacent cell (up, down, left, right) in the same room
+  holds that object. Diagonals do not count, and standing on the object is not "beside" it.
+- Because of the one-per-row-and-column rule, two suspects can never be orthogonally adjacent, so
+  there is no "beside a suspect" clue. Relative suspect clues use row and column offsets instead.
 
 ### 3.5 Puzzle-specific global rules (optional per puzzle)
 
@@ -81,9 +82,9 @@ clue types (names illustrative, final names set in the plan):
 | notOnObject | "was not on a rug" | negation |
 | besideObject | "was beside a plant" | any orthogonal neighbor in same room has kind K |
 | notBesideObject | "was not beside water" | negation |
-| besideSuspect | "was beside Ivan" | orthogonal adjacency, same room |
 | inColumn / inRow | "was in column 2", "in the top row" | index equality |
-| relativeSuspect | "was one row north of Ivan" | row delta and column rule |
+| northOf | "was one row north of Ivan" | suspect row = other row - delta |
+| westOf | "was two columns west of Ivan" | suspect column = other column - delta |
 | aloneInRoom | "was alone" | room has exactly 1 suspect |
 | withCount | "was with exactly one other person" | room has exactly 2 suspects |
 | onlyOnObject | "was the only person on a rug" | the only suspect on any cell of kind K |
@@ -139,8 +140,8 @@ Boundaries:
 | Tier | N | Clue mix |
 |---|---|---|
 | Easy | 6 | direct clues (room, object) dominate |
-| Medium | 8 | adds besideSuspect, row/column, alone |
-| Hard | 10 | adds relativeSuspect, onlyOnObject, negatives |
+| Medium | 8 | adds row/column, alone, sameRoomAs |
+| Hard | 10 | adds northOf, westOf, onlyOnObject, negatives |
 
 Daily difficulty follows the weekday: Monday Easy through Sunday Hard on a fixed rotation
 (Mon, Tue Easy; Wed, Thu Medium; Fri, Sat, Sun Hard). Tier sizes and the rotation are tunable

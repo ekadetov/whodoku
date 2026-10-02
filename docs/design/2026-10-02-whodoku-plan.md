@@ -31,10 +31,10 @@ export type Clue =
   | { type: 'notOnObject'; suspect: number; kind: ObjectKind }
   | { type: 'besideObject'; suspect: number; kind: ObjectKind }
   | { type: 'notBesideObject'; suspect: number; kind: ObjectKind }
-  | { type: 'besideSuspect'; suspect: number; other: number }
   | { type: 'inColumn'; suspect: number; col: number }
   | { type: 'inRow'; suspect: number; row: number }
   | { type: 'northOf'; suspect: number; other: number; delta: number } // suspect.r = other.r - delta
+  | { type: 'westOf'; suspect: number; other: number; delta: number }  // suspect.c = other.c - delta
   | { type: 'aloneInRoom'; suspect: number }
   | { type: 'withOneOther'; suspect: number }       // room holds exactly 2 suspects
   | { type: 'onlyOnObject'; suspect: number; kind: ObjectKind }
