@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { answerOf, isLegalPlacement, isSolved } from './clues'
+import { answerOf, isLegalPlacement, isSolved } from '../../engine/clues'
+import { countSolutions, solve } from '../../engine/solver'
 import { TIER_CONFIG, generate } from './generator'
-import { countSolutions, solve } from './solver'
-import type { Tier } from './types'
+import type { Tier } from './generator'
 
 const TIERS: Tier[] = ['easy', 'medium', 'hard']
 const SEEDS = Array.from({ length: 15 }, (_, i) => 1000 + i * 7919)

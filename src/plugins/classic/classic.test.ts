@@ -24,4 +24,9 @@ describe('classic plugin', () => {
     expect(registry.clueTypes()).toHaveLength(14)
     expect(registry.rules().map((r) => r.id)).toEqual(['victim-killer'])
   })
+
+  it('registers the tools and the daily puzzle source', () => {
+    expect(registry.tools().map((t) => t.id)).toEqual(['select', 'x', 'eraser'])
+    expect(registry.puzzleSource('daily').id).toBe('daily')
+  })
 })

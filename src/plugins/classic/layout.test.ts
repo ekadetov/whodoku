@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { generateLayout } from './layout'
-import { mulberry32 } from './rng'
-import type { Cell } from './types'
+import type { ThemeDef } from '../../engine/plugin'
+import { registry } from '../../engine/registry'
+import { mulberry32 } from '../../engine/rng'
+import type { Cell } from '../../engine/types'
 
 function isConnected(cells: Cell[][], room: number): boolean {
   const size = cells.length
@@ -55,5 +57,27 @@ describe('generateLayout', () => {
 
   it('is deterministic for a given seed', () => {
     expect(generateLayout(mulberry32(5), 8, 8)).toEqual(generateLayout(mulberry32(5), 8, 8))
+  })
+
+  it('draws rooms and objects from the given theme', () => {
+    const theme: ThemeDef = {
+      id: 'mini',
+      rooms: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7'],
+      suspects: ['S'],
+      objects: {
+        chair: { noun: 'a chair', standingOn: 'on a chair', glyph: 'c', weight: 0.5 },
+        table: { noun: 'a table', standingOn: 'on a table', glyph: 't', weight: 0.4 },
+      },
+    }
+    const layout = generateLayout(mulberry32(3), 6, 6, theme)
+    expect(layout.rooms.every((room) => theme.rooms.includes(room))).toBe(true)
+    const kinds = new Set(layout.cells.flat().map((cell) => cell.object))
+    expect([...kinds].every((kind) => kind === null || kind === 'chair' || kind === 'table')).toBe(true)
+    expect(kinds.has('chair') && kinds.has('table')).toBe(true)
+  })
+
+  it('refuses a theme with too few rooms', () => {
+    const theme: ThemeDef = { ...registry.theme(), id: 'tiny', rooms: ['Only'] }
+    expect(() => generateLayout(mulberry32(1), 6, 6, theme)).toThrow('fewer than 6 rooms')
   })
 })

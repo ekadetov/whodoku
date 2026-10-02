@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { dailyPuzzle, dateKey } from './engine/daily'
+import { dailyPuzzle, dateKey } from './plugins/classic/daily'
 import { Game } from './ui/Game'
 
 function localStorageOrNull(): Storage | null {

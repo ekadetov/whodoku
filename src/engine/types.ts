@@ -34,8 +34,6 @@ export interface Puzzle {
   themeId?: string
 }
 
-export type Tier = 'easy' | 'medium' | 'hard'
-
 export function isOccupiable(cell: Cell): boolean {
   return cell.object === null || !registry.objectKind(cell.object).blocking
 }

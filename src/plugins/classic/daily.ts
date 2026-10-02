@@ -1,6 +1,9 @@
+import type { PuzzleSourceDef } from '../../engine/plugin'
+import { registry } from '../../engine/registry'
+import { hashSeed } from '../../engine/rng'
+import type { Puzzle } from '../../engine/types'
 import { generate } from './generator'
-import { hashSeed } from './rng'
-import type { Puzzle, Tier } from './types'
+import type { Tier } from './generator'
 
 const TIER_BY_WEEKDAY: Record<number, Tier> = {
   0: 'hard',
@@ -21,5 +24,7 @@ export function tierForDate(key: string): Tier {
 }
 
 export function dailyPuzzle(key: string): Puzzle {
-  return generate(hashSeed(`whodoku:${key}`), tierForDate(key))
+  return generate(hashSeed(`whodoku:${key}:${registry.fingerprint()}`), tierForDate(key))
 }
+
+export const dailySource: PuzzleSourceDef = { id: 'daily', get: dailyPuzzle }

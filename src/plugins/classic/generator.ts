@@ -1,11 +1,15 @@
-import { candidateClues } from './candidates'
-import { evaluate, isUnaryClue } from './clues'
+import { candidateClues } from '../../engine/candidates'
+import { evaluate, isUnaryClue } from '../../engine/clues'
+import type { ThemeDef } from '../../engine/plugin'
+import { registry } from '../../engine/registry'
+import { mulberry32, pick, shuffle } from '../../engine/rng'
+import type { Rng } from '../../engine/rng'
+import { countSolutions, findSolutions } from '../../engine/solver'
+import { isOccupiable } from '../../engine/types'
+import type { Cell, Clue, Placement, Pos, Puzzle } from '../../engine/types'
 import { generateLayout } from './layout'
-import { mulberry32, pick, shuffle } from './rng'
-import type { Rng } from './rng'
-import { countSolutions, findSolutions } from './solver'
-import { isOccupiable } from './types'
-import type { Cell, Clue, Placement, Pos, Puzzle, Tier } from './types'
+
+export type Tier = 'easy' | 'medium' | 'hard'
 
 export interface TierConfig {
   size: number
@@ -39,25 +43,6 @@ export const TIER_CONFIG: Record<Tier, TierConfig> = {
   medium: { size: 8, roomCount: 8, allowed: INTERMEDIATE, softenPasses: 1 },
   hard: { size: 9, roomCount: 9, allowed: ADVANCED, softenPasses: 1 },
 }
-
-const SUSPECT_NAMES = [
-  'Ada',
-  'Bram',
-  'Cora',
-  'Dev',
-  'Elsa',
-  'Finn',
-  'Gus',
-  'Hana',
-  'Ivo',
-  'June',
-  'Kai',
-  'Lena',
-  'Milo',
-  'Nora',
-  'Otto',
-  'Pia',
-]
 
 const ALTERNATIVE_CAP = 60
 const CANDIDATE_SAMPLE = 12
@@ -181,9 +166,10 @@ function selectClues(rng: Rng, puzzle: Puzzle, placement: Placement, config: Tie
   return countSolutions(puzzle, 2, FINAL_CHECK_BUDGET) === 1
 }
 
-function attemptPuzzle(rng: Rng, config: TierConfig): Puzzle | null {
+function attemptPuzzle(rng: Rng, config: TierConfig, theme: ThemeDef): Puzzle | null {
   const { size, roomCount } = config
-  const layout = generateLayout(rng, size, roomCount)
+  if (theme.suspects.length < size) throw new Error(`Theme "${theme.id}" has fewer than ${size} suspects`)
+  const layout = generateLayout(rng, size, roomCount, theme)
   const positions = randomPositions(rng, layout.cells)
   if (!positions) return null
 
@@ -198,20 +184,22 @@ function attemptPuzzle(rng: Rng, config: TierConfig): Puzzle | null {
     size,
     cells: layout.cells,
     rooms: layout.rooms,
-    suspects: shuffle(rng, SUSPECT_NAMES)
+    suspects: shuffle(rng, theme.suspects)
       .slice(0, size)
       .map((name) => ({ name })),
     victim: pick(rng, eligible),
     clues: [],
+    themeId: theme.id,
   }
   return selectClues(rng, puzzle, placement, config) ? puzzle : null
 }
 
-export function generate(seed: number, tier: Tier): Puzzle {
+export function generate(seed: number, tier: Tier, themeId?: string): Puzzle {
   const config = TIER_CONFIG[tier]
+  const theme = registry.theme(themeId)
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rng = mulberry32((seed ^ Math.imul(attempt + 1, 0x9e3779b1)) >>> 0)
-    const puzzle = attemptPuzzle(rng, config)
+    const puzzle = attemptPuzzle(rng, config, theme)
     if (puzzle) return puzzle
   }
   throw new Error(`Could not generate a ${tier} puzzle for seed ${seed}`)

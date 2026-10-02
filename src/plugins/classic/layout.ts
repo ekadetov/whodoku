@@ -1,37 +1,8 @@
-import { pick, randInt, shuffle } from './rng'
-import type { Rng } from './rng'
-import type { Cell, ObjectKind } from './types'
-
-const ROOM_NAMES = [
-  'Library',
-  'Kitchen',
-  'Cellar',
-  'Attic',
-  'Garden',
-  'Study',
-  'Gallery',
-  'Conservatory',
-  'Parlor',
-  'Workshop',
-  'Pantry',
-  'Balcony',
-  'Laundry',
-  'Cloakroom',
-  'Observatory',
-  'Chapel',
-]
-
-const OBJECT_WEIGHTS: readonly [ObjectKind, number][] = [
-  ['chair', 0.1],
-  ['rug', 0.06],
-  ['water', 0.04],
-  ['table', 0.05],
-  ['shelf', 0.03],
-  ['plant', 0.03],
-  ['rock', 0.02],
-  ['tree', 0.02],
-  ['tv', 0.01],
-]
+import type { ThemeDef } from '../../engine/plugin'
+import { registry } from '../../engine/registry'
+import { pick, randInt, shuffle } from '../../engine/rng'
+import type { Rng } from '../../engine/rng'
+import type { Cell, ObjectKind } from '../../engine/types'
 
 const STEPS = [
   [1, 0],
@@ -68,17 +39,18 @@ function growRooms(rng: Rng, size: number, roomCount: number): number[][] {
   return grid
 }
 
-function randomObject(rng: Rng): ObjectKind | null {
+function randomObject(rng: Rng, theme: ThemeDef): ObjectKind | null {
   let roll = rng()
-  for (const [kind, weight] of OBJECT_WEIGHTS) {
+  for (const [kind, { weight }] of Object.entries(theme.objects)) {
     if (roll < weight) return kind
     roll -= weight
   }
   return null
 }
 
-export function generateLayout(rng: Rng, size: number, roomCount: number): Layout {
+export function generateLayout(rng: Rng, size: number, roomCount: number, theme: ThemeDef = registry.theme()): Layout {
+  if (theme.rooms.length < roomCount) throw new Error(`Theme "${theme.id}" has fewer than ${roomCount} rooms`)
   const grid = growRooms(rng, size, roomCount)
-  const cells = grid.map((row) => row.map((room): Cell => ({ room, object: randomObject(rng) })))
-  return { cells, rooms: shuffle(rng, ROOM_NAMES).slice(0, roomCount) }
+  const cells = grid.map((row) => row.map((room): Cell => ({ room, object: randomObject(rng, theme) })))
+  return { cells, rooms: shuffle(rng, theme.rooms).slice(0, roomCount) }
 }

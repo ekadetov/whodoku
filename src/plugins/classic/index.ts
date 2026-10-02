@@ -1,7 +1,9 @@
 import type { Plugin } from '../../engine/plugin'
 import { CLUE_TYPES } from './clues'
+import { dailySource } from './daily'
 import { OBJECT_KINDS } from './objects'
 import { classicTheme } from './theme'
+import { TOOLS } from './tools'
 import { victimRule } from './victim'
 
 export const classicPlugin: Plugin = {
@@ -12,5 +14,7 @@ export const classicPlugin: Plugin = {
     for (const def of CLUE_TYPES) api.addClueType(def)
     api.addRule(victimRule)
     api.addTheme(classicTheme)
+    for (const tool of TOOLS) api.addTool(tool)
+    api.addPuzzleSource(dailySource)
   },
 }
