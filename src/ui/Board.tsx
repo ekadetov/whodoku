@@ -1,7 +1,7 @@
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
 import { posKey } from '../state/reducer'
-import { GLYPH, roomHue, suspectColor } from './glyphs'
+import { glyphFor, roomHue, suspectColor } from './glyphs'
 
 interface BoardProps {
   puzzle: Puzzle
@@ -58,7 +58,7 @@ export function Board({ puzzle, placements, marks, selected, conflicts, onCellCl
               onClick={() => onCellClick(pos)}
             >
               {labelAt.has(key) && <span className="room-label">{labelAt.get(key)}</span>}
-              {cell.object && <span className="glyph">{GLYPH[cell.object]}</span>}
+              {cell.object && <span className="glyph">{glyphFor(puzzle, cell.object)}</span>}
               {marks.has(key) && occupant === undefined && <span className="mark">x</span>}
               {occupant !== undefined && (
                 <span className="chip" style={{ background: suspectColor(occupant) }}>

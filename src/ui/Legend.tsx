@@ -1,6 +1,6 @@
 import { objectKindsIn } from '../engine/candidates'
 import type { Puzzle } from '../engine/types'
-import { GLYPH, roomHue } from './glyphs'
+import { glyphFor, roomHue } from './glyphs'
 
 export function Legend({ puzzle }: { puzzle: Puzzle }) {
   return (
@@ -16,7 +16,7 @@ export function Legend({ puzzle }: { puzzle: Puzzle }) {
       <ul className="legend-objects">
         {objectKindsIn(puzzle).map((kind) => (
           <li key={kind}>
-            <span className="glyph">{GLYPH[kind]}</span> {kind}
+            <span className="glyph">{glyphFor(puzzle, kind)}</span> {kind}
           </li>
         ))}
       </ul>

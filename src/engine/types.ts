@@ -1,16 +1,6 @@
-export type ObjectKind =
-  | 'chair'
-  | 'rug'
-  | 'water'
-  | 'table'
-  | 'shelf'
-  | 'plant'
-  | 'rock'
-  | 'tree'
-  | 'tv'
+import { registry } from './registry'
 
-export const OCCUPIABLE_KINDS: readonly ObjectKind[] = ['chair', 'rug', 'water']
-export const BLOCKING_KINDS: readonly ObjectKind[] = ['table', 'shelf', 'plant', 'rock', 'tree', 'tv']
+export type ObjectKind = string
 
 export interface Pos {
   r: number
@@ -53,10 +43,11 @@ export interface Puzzle {
   suspects: Suspect[]
   victim: number
   clues: Clue[]
+  themeId?: string
 }
 
 export type Tier = 'easy' | 'medium' | 'hard'
 
 export function isOccupiable(cell: Cell): boolean {
-  return cell.object === null || OCCUPIABLE_KINDS.includes(cell.object)
+  return cell.object === null || !registry.objectKind(cell.object).blocking
 }
