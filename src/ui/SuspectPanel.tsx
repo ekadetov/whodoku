@@ -138,7 +138,7 @@ export function SuspectPanel({
               }}
             >
               <span className="portrait">
-                <Sprite sprite={portraitFor(suspect.name)} />
+                <Sprite sprite={portraitFor(suspect)} />
               </span>
               <span className="plate">
                 {suspect.name}
@@ -167,7 +167,7 @@ export function SuspectPanel({
       </ul>
       {ghost && (
         <div className="ghost" style={{ left: ghost.x, top: ghost.y }} aria-hidden="true">
-          <Sprite sprite={portraitFor(puzzle.suspects[ghost.suspect].name)} />
+          <Sprite sprite={portraitFor(puzzle.suspects[ghost.suspect])} />
         </div>
       )}
     </>

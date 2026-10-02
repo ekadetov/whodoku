@@ -206,7 +206,7 @@ export function Board({
               )}
               {occupant !== undefined && (
                 <span className={`token${highlight.suspects.has(occupant) ? ' linked' : ''}`}>
-                  <Sprite sprite={portraitFor(puzzle.suspects[occupant].name)} />
+                  <Sprite sprite={portraitFor(puzzle.suspects[occupant])} />
                 </span>
               )}
             </button>
