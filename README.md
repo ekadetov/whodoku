@@ -30,12 +30,23 @@ Playwright needs a browser once: `npx playwright install chromium`.
 
 ### Layout
 
-- `src/engine/` pure TypeScript: seeded RNG, clue evaluation and text, backtracking solver with
-  solution counting, procedural layouts, the clue generator and the daily seed. Every generated
-  puzzle is verified to have exactly one solution.
+- `src/engine/` the kernel: grid and cell types, seeded RNG, the backtracking solver with
+  solution counting, and the plugin registry. It knows nothing about specific objects, clues or
+  themes.
+- `src/plugins/classic/` the built-in plugin: object kinds, clue types, the victim/killer rule, the
+  default theme, tools, procedural layouts, the clue generator and the daily puzzle source. Every
+  generated puzzle is verified to have exactly one solution.
 - `src/state/` reducer, versioned localStorage persistence and streak logic.
-- `src/ui/` React components.
-- `docs/design/` the spec and implementation plan.
+- `src/ui/` React components. They reach plugin content only through the registry.
+- `docs/design/` the specs and implementation plans.
+
+### Writing a plugin
+
+A plugin is `{ id, version, requires?, register(api) }`. `register` adds object kinds, clue
+types, rules, themes, tools or puzzle sources through `api`. Register it with
+`registry.register(plugin)` at startup (see `src/plugins/index.ts`). `src/plugins/extensibility.test.ts`
+shows a second theme and a new clue type added this way. Code under `src/engine`, `src/state` and
+`src/ui` must not import from `src/plugins`; a test enforces it.
 
 ## Deployment
 
