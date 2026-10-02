@@ -42,9 +42,17 @@ export interface RuleDef {
   answer?(puzzle: Puzzle, placement: Placement): number | null
 }
 
+export interface PaintStart {
+  marked: boolean
+  occupied: boolean
+}
+
 export interface ToolDef {
   id: string
   label: string
+  /** Present on stroke tools: decides what a drag does from the state of the first cell. */
+  paint?(start: PaintStart): PaintMode
+  holdToClear?: boolean
 }
 
 export interface PuzzleSourceDef {

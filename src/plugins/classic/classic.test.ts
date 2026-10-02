@@ -29,4 +29,14 @@ describe('classic plugin', () => {
     expect(registry.tools().map((t) => t.id)).toEqual(['select', 'x', 'eraser'])
     expect(registry.puzzleSource('daily').id).toBe('daily')
   })
+
+  it('gives the stroke tools their paint rules', () => {
+    const tool = (id: string) => registry.tools().find((t) => t.id === id)!
+    expect(tool('select').paint).toBeUndefined()
+    expect(tool('x').paint!({ marked: false, occupied: false })).toBe('mark')
+    expect(tool('x').paint!({ marked: true, occupied: false })).toBe('unmark')
+    expect(tool('eraser').paint!({ marked: false, occupied: true })).toBe('erase')
+    expect(tool('eraser').holdToClear).toBe(true)
+    expect(tool('x').holdToClear).toBeUndefined()
+  })
 })
