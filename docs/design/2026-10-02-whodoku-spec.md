@@ -71,7 +71,7 @@ post-MVP unless the generator needs it. MVP puzzles use only the rules in 3.1 to
 
 ## 4. Clue vocabulary
 
-Each suspect has one clue. A clue is a predicate over the full placement. The engine ships these
+Each suspect has one or two clues (the published puzzles also give some suspects two statements). A clue is a predicate over the full placement. The engine ships these
 clue types (names illustrative, final names set in the plan):
 
 | Type | Example text | Predicate |
@@ -128,12 +128,15 @@ Boundaries:
 3. Choose a random valid placement of N suspects (one per row and column on occupiable cells).
 4. Pick the victim such that their room contains exactly one other suspect (the killer). Retry
    the placement if none qualifies.
-5. Assign each suspect a candidate clue true under the placement.
-6. Run the solver. While more than one solution exists, strengthen clues (swap a weak clue for a
-   more specific true one). Then try removing or weakening clues to reach the target difficulty
-   while the solution stays unique.
-7. Reject and restart with a derived sub-seed if uniqueness cannot be reached within a step
-   budget. Generation must finish in under 250 ms for the largest tier in a modern browser.
+5. Enumerate every clue about each suspect that is true under the placement and allowed by the
+   tier.
+6. Greedy set cover: enumerate alternative solutions under the clues chosen so far, add the true
+   clue (at most two per suspect) that eliminates the most alternatives, repeat until the solution
+   is unique. Give every suspect without a clue a loose true clue.
+7. Harder tiers then drop redundant second clues and swap clues for vaguer true ones, keeping the
+   solution unique. Solver searches use a work budget; an exhausted budget counts as "not unique".
+8. A final exact uniqueness check runs on the result. On any failure, restart with a derived
+   sub-seed. Median generation time is under 250 ms for every tier.
 
 ### 5.2 Difficulty tiers
 
@@ -141,7 +144,7 @@ Boundaries:
 |---|---|---|
 | Easy | 6 | direct clues (room, object) dominate |
 | Medium | 8 | adds row/column, alone, sameRoomAs |
-| Hard | 10 | adds northOf, westOf, onlyOnObject, negatives |
+| Hard | 9 | adds northOf, westOf, onlyOnObject, negatives |
 
 Daily difficulty follows the weekday: Monday Easy through Sunday Hard on a fixed rotation
 (Mon, Tue Easy; Wed, Thu Medium; Fri, Sat, Sun Hard). Tier sizes and the rotation are tunable
@@ -226,8 +229,8 @@ the UI. A local-time rollover is a possible later change.
 
 ## 11. Open decisions (defaults chosen, change if you disagree)
 
-- Tier sizes 6/8/10 and the weekday rotation (examples go up to 16 suspects, which is likely too
-  big for a phone UI in an MVP).
+- Tier sizes 6/8/9 and the weekday rotation (examples go up to 16 suspects, which is likely too
+  big for a phone UI in an MVP; 10x10 generation was too slow in the browser).
 - English only.
 - Procedural generic themes, not hand-authored themed scenes like the Zoo or Courtroom.
 - UTC day boundary.

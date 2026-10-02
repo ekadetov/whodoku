@@ -45,7 +45,7 @@ export interface Puzzle {
   rooms: string[]          // room names, index = Cell.room
   suspects: Suspect[]      // length === size
   victim: number
-  clues: Clue[]            // clues[i] belongs to suspect i; clues[victim] is withOneOther
+  clues: Clue[]            // flat list sorted by suspect, 1 to 2 clues each; victim has withOneOther
 }
 export type Tier = 'easy' | 'medium' | 'hard'
 ```

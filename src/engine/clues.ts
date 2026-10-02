@@ -1,5 +1,18 @@
 import { isOccupiable } from './types'
-import type { Clue, ObjectKind, Placement, Pos, Puzzle } from './types'
+import type { Clue, ClueType, ObjectKind, Placement, Pos, Puzzle } from './types'
+
+const NON_UNARY_TYPES = new Set<ClueType>([
+  'northOf',
+  'westOf',
+  'sameRoomAs',
+  'aloneInRoom',
+  'withOneOther',
+  'onlyOnObject',
+])
+
+export function isUnaryClue(clue: Clue): boolean {
+  return !NON_UNARY_TYPES.has(clue.type)
+}
 
 const NEIGHBOR_STEPS: readonly Pos[] = [
   { r: -1, c: 0 },
