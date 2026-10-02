@@ -8,6 +8,7 @@ import type { ReadableStorage, WritableStorage } from '../state/storage'
 import { currentStreak, recordSolve } from '../state/streak'
 import { Board } from './Board'
 import { CluePanel } from './CluePanel'
+import { Legend } from './Legend'
 import { SuspectTray } from './SuspectTray'
 
 interface GameProps {
@@ -142,6 +143,8 @@ export function Game({ puzzle, dateKey, storage, now = Date.now }: GameProps) {
         conflicts={conflicts}
         onCellClick={onCellClick}
       />
+
+      <Legend puzzle={puzzle} />
 
       <div className="toolbar">
         <button type="button" onClick={onCheck} disabled={solved}>

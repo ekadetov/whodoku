@@ -19,6 +19,15 @@ export function Board({ puzzle, placements, marks, selected, conflicts, onCellCl
   const occupantAt = new Map<string, number>()
   for (const [suspect, pos] of Object.entries(placements)) occupantAt.set(posKey(pos), Number(suspect))
 
+  const labelAt = new Map<string, string>()
+  puzzle.cells.forEach((row, r) =>
+    row.forEach((cell, c) => {
+      if (!puzzle.cells.slice(0, r).some((above) => above.some((x) => x.room === cell.room)) && !row.slice(0, c).some((x) => x.room === cell.room)) {
+        labelAt.set(posKey({ r, c }), puzzle.rooms[cell.room])
+      }
+    }),
+  )
+
   return (
     <div className="board" style={{ gridTemplateColumns: `repeat(${puzzle.size}, 1fr)` }} role="grid">
       {puzzle.cells.flatMap((row, r) =>
@@ -48,6 +57,7 @@ export function Board({ puzzle, placements, marks, selected, conflicts, onCellCl
               }}
               onClick={() => onCellClick(pos)}
             >
+              {labelAt.has(key) && <span className="room-label">{labelAt.get(key)}</span>}
               {cell.object && <span className="glyph">{GLYPH[cell.object]}</span>}
               {marks.has(key) && occupant === undefined && <span className="mark">x</span>}
               {occupant !== undefined && (
