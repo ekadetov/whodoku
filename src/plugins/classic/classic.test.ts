@@ -19,4 +19,9 @@ describe('classic plugin', () => {
       ['chair', 'plant', 'rock', 'rug', 'shelf', 'table', 'tree', 'tv', 'water'].sort(),
     )
   })
+
+  it('registers every clue type and the victim rule', () => {
+    expect(registry.clueTypes()).toHaveLength(14)
+    expect(registry.rules().map((r) => r.id)).toEqual(['victim-killer'])
+  })
 })

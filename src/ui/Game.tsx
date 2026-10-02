@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
-import { evaluate, isLegalPlacement, isSolved, killerOf } from '../engine/clues'
+import { answerOf, evaluate, isLegalPlacement, isSolved } from '../engine/clues'
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
 import { newGame, posKey, reduce } from '../state/reducer'
@@ -58,7 +58,7 @@ export function Game({ puzzle, dateKey, storage, now = Date.now }: GameProps) {
   const marks = useMemo(() => new Set(progress.marks), [progress.marks])
   const failing = new Set(check?.key === placementKey ? check.failing : [])
   const readyToAccuse = complete !== null && !solved && isSolved(puzzle, complete)
-  const killer = complete !== null ? killerOf(puzzle, complete) : null
+  const killer = complete !== null ? answerOf(puzzle, complete) : null
 
   const onCellClick = (pos: Pos) => {
     if (solved || !isOccupiable(puzzle.cells[pos.r][pos.c])) return

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { evaluate, isLegalPlacement, isSolved, killerOf, renderClue } from './clues'
-import { lonely, pairs, tiny, twoChairs } from './fixtures'
-import type { Clue, Placement } from './types'
+import { answerOf, evaluate, isLegalPlacement, isSolved, renderClue } from '../../engine/clues'
+import { lonely, pairs, tiny, twoChairs } from '../../engine/fixtures'
+import type { Clue, Placement } from '../../engine/types'
 
 const ANN = 0
 const BOB = 1
@@ -115,13 +115,13 @@ describe('isLegalPlacement', () => {
   })
 })
 
-describe('killerOf', () => {
+describe('answerOf', () => {
   it('returns the other suspect in the victim room', () => {
-    expect(killerOf(tiny, pairs)).toBe(BOB)
+    expect(answerOf(tiny, pairs)).toBe(BOB)
   })
 
   it('returns null when the victim is alone', () => {
-    expect(killerOf(tiny, lonely)).toBeNull()
+    expect(answerOf(tiny, lonely)).toBeNull()
   })
 })
 

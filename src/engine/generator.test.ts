@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isLegalPlacement, isSolved, killerOf } from './clues'
+import { answerOf, isLegalPlacement, isSolved } from './clues'
 import { TIER_CONFIG, generate } from './generator'
 import { countSolutions, solve } from './solver'
 import type { Tier } from './types'
@@ -30,7 +30,7 @@ describe.each(TIERS)('generate (%s)', (tier) => {
       const placement = solve(puzzle)!
       expect(isLegalPlacement(puzzle, placement)).toBe(true)
       expect(isSolved(puzzle, placement)).toBe(true)
-      expect(killerOf(puzzle, placement)).not.toBeNull()
+      expect(answerOf(puzzle, placement)).not.toBeNull()
     }
   })
 

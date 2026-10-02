@@ -5,16 +5,16 @@ import { mulberry32, pick, shuffle } from './rng'
 import type { Rng } from './rng'
 import { countSolutions, findSolutions } from './solver'
 import { isOccupiable } from './types'
-import type { Cell, Clue, ClueType, Placement, Pos, Puzzle, Tier } from './types'
+import type { Cell, Clue, Placement, Pos, Puzzle, Tier } from './types'
 
 export interface TierConfig {
   size: number
   roomCount: number
-  allowed: readonly ClueType[]
+  allowed: readonly string[]
   softenPasses: number
 }
 
-const DIRECT: readonly ClueType[] = [
+const DIRECT: readonly string[] = [
   'inRoom',
   'notInRoom',
   'onObject',
@@ -23,7 +23,7 @@ const DIRECT: readonly ClueType[] = [
   'inRow',
   'aloneInRoom',
 ]
-const INTERMEDIATE: readonly ClueType[] = [
+const INTERMEDIATE: readonly string[] = [
   ...DIRECT,
   'notOnObject',
   'notBesideObject',
@@ -32,7 +32,7 @@ const INTERMEDIATE: readonly ClueType[] = [
   'westOf',
   'withOneOther',
 ]
-const ADVANCED: readonly ClueType[] = [...INTERMEDIATE, 'onlyOnObject']
+const ADVANCED: readonly string[] = [...INTERMEDIATE, 'onlyOnObject']
 
 export const TIER_CONFIG: Record<Tier, TierConfig> = {
   easy: { size: 6, roomCount: 6, allowed: DIRECT, softenPasses: 0 },

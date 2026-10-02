@@ -1,16 +1,17 @@
-import { evaluate, isUnaryClue, killerOf } from './clues'
+import { evaluate, isUnaryClue, rulesHold } from './clues'
+import type { PartialPlacement } from './plugin'
+import { registry } from './registry'
 import { shuffle } from './rng'
 import type { Rng } from './rng'
 import { isOccupiable } from './types'
 import type { Clue, Placement, Pos, Puzzle } from './types'
 
-type Assigned = (Pos | undefined)[]
+type Assigned = PartialPlacement
 
-const GLOBAL_TYPES = new Set<Clue['type']>(['aloneInRoom', 'withOneOther', 'onlyOnObject'])
-const BINARY_TYPES = new Set<Clue['type']>(['northOf', 'westOf', 'sameRoomAs'])
+const scopeOf = (clue: Clue) => registry.clueType(clue.type).scope
 
 function otherOf(clue: Clue): number | undefined {
-  return 'other' in clue ? clue.other : undefined
+  return typeof clue.other === 'number' ? clue.other : undefined
 }
 
 function buildDomains(puzzle: Puzzle): Pos[][] {
@@ -32,21 +33,7 @@ function buildDomains(puzzle: Puzzle): Pos[][] {
 }
 
 function globalPrune(puzzle: Puzzle, clue: Clue, assigned: Assigned): boolean {
-  const pos = assigned[clue.suspect]
-  if (!pos) return true
-  const room = puzzle.cells[pos.r][pos.c].room
-  const placed = assigned.filter((p): p is Pos => p !== undefined)
-  const inRoom = placed.filter((p) => puzzle.cells[p.r][p.c].room === room).length
-  switch (clue.type) {
-    case 'aloneInRoom':
-      return inRoom <= 1
-    case 'withOneOther':
-      return inRoom <= 2
-    case 'onlyOnObject':
-      return placed.filter((p) => puzzle.cells[p.r][p.c].object === clue.kind).length <= 1
-    default:
-      return true
-  }
+  return registry.clueType(clue.type).prune?.(clue, puzzle, assigned) ?? true
 }
 
 function binaryHolds(puzzle: Puzzle, clue: Clue, assigned: Assigned): boolean {
@@ -56,14 +43,9 @@ function binaryHolds(puzzle: Puzzle, clue: Clue, assigned: Assigned): boolean {
 }
 
 function companyReachable(puzzle: Puzzle, assigned: Assigned, reachable: number[]): boolean {
-  return puzzle.clues.every((clue) => {
-    if (clue.type !== 'withOneOther') return true
-    const pos = assigned[clue.suspect]
-    if (!pos) return true
-    const room = puzzle.cells[pos.r][pos.c].room
-    const inRoom = assigned.filter((p) => p && puzzle.cells[p.r][p.c].room === room).length
-    return inRoom >= 2 || reachable[room] >= 2 - inRoom
-  })
+  return puzzle.clues.every(
+    (clue) => registry.clueType(clue.type).feasible?.(clue, puzzle, assigned, reachable) ?? true,
+  )
 }
 
 export interface SearchOptions {
@@ -81,9 +63,9 @@ function search(puzzle: Puzzle, onSolution: (placement: Placement) => boolean, o
   if (domains.some((d) => d.length === 0)) return true
 
   const involving = puzzle.suspects.map((_, i) =>
-    puzzle.clues.filter((clue) => BINARY_TYPES.has(clue.type) && (clue.suspect === i || otherOf(clue) === i)),
+    puzzle.clues.filter((clue) => scopeOf(clue) === 'binary' && (clue.suspect === i || otherOf(clue) === i)),
   )
-  const globals = puzzle.clues.filter((clue) => GLOBAL_TYPES.has(clue.type))
+  const globals = puzzle.clues.filter((clue) => scopeOf(clue) === 'global')
   const rowUsed = new Array<boolean>(puzzle.size).fill(false)
   const colUsed = new Array<boolean>(puzzle.size).fill(false)
   const assigned: Assigned = new Array(puzzle.size).fill(undefined)
@@ -107,7 +89,7 @@ function search(puzzle: Puzzle, onSolution: (placement: Placement) => boolean, o
     }
     if (placedCount === puzzle.size) {
       const placement = assigned as Placement
-      const ok = puzzle.clues.every((clue) => evaluate(clue, puzzle, placement)) && killerOf(puzzle, placement) !== null
+      const ok = puzzle.clues.every((clue) => evaluate(clue, puzzle, placement)) && rulesHold(puzzle, placement)
       if (ok && onSolution(placement.map((p) => ({ ...p })))) stopped = true
       return
     }
