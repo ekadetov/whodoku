@@ -14,6 +14,7 @@ import { SuspectTray } from './SuspectTray'
 interface GameProps {
   puzzle: Puzzle
   dateKey: string
+  puzzleId?: string
   storage: (ReadableStorage & WritableStorage) | null
   now?: () => number
 }
@@ -35,10 +36,12 @@ function formatDuration(ms: number): string {
   return minutes > 0 ? `${minutes} min ${total % 60} s` : `${total} s`
 }
 
-export function Game({ puzzle, dateKey, storage, now = Date.now }: GameProps) {
+export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: GameProps) {
   const [saved, setSaved] = useState(() => loadState(storage))
   const [game, dispatch] = useReducer(reduce, undefined, () =>
-    saved.today?.dateKey === dateKey ? { progress: saved.today, selected: null } : newGame(dateKey, now()),
+    saved.today?.dateKey === dateKey && saved.today.puzzleId === puzzleId
+      ? { progress: saved.today, selected: null }
+      : newGame(dateKey, now(), puzzleId),
   )
   const [notice, setNotice] = useState('')
   const [check, setCheck] = useState<{ key: string; failing: number[] } | null>(null)

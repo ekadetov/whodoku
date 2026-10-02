@@ -7,6 +7,7 @@ const VERSION = 1
 
 export interface DayProgress {
   dateKey: string
+  puzzleId?: string
   placements: Record<number, Pos>
   marks: string[]
   struck: number[]

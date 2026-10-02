@@ -77,3 +77,9 @@ describe('reduce', () => {
     expect(reduce(state, { type: 'toggleMark', pos: { r: 0, c: 0 } }).progress.marks).toEqual([])
   })
 })
+
+describe('newGame', () => {
+  it('records the puzzle id it was started for', () => {
+    expect(newGame('2026-10-02', 1000, 'abc').progress.puzzleId).toBe('abc')
+  })
+})

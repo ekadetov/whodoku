@@ -17,9 +17,9 @@ export type Action =
 
 export const posKey = (pos: Pos): string => `${pos.r},${pos.c}`
 
-export function newGame(dateKey: string, now: number): GameState {
+export function newGame(dateKey: string, now: number, puzzleId?: string): GameState {
   return {
-    progress: { dateKey, placements: {}, marks: [], struck: [], startedAt: now, solvedAt: null },
+    progress: { dateKey, puzzleId, placements: {}, marks: [], struck: [], startedAt: now, solvedAt: null },
     selected: null,
   }
 }

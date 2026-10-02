@@ -106,4 +106,14 @@ describe('Game', () => {
     renderGame(storage)
     expect(screen.getByTestId('cell-0-1')).toHaveTextContent('A')
   })
+
+  it('discards saved progress that belongs to a different puzzle id', async () => {
+    const user = userEvent.setup()
+    const storage = fakeStorage()
+    const first = render(<Game puzzle={tiny} dateKey="2026-10-02" puzzleId="a" storage={storage} now={() => 1_000_000} />)
+    await place(user, 0, 0, 1)
+    first.unmount()
+    render(<Game puzzle={tiny} dateKey="2026-10-02" puzzleId="b" storage={storage} now={() => 1_000_000} />)
+    expect(screen.getByTestId('cell-0-1')).not.toHaveTextContent('A')
+  })
 })

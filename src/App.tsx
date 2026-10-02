@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { dailyPuzzle, dateKey } from './plugins/classic/daily'
+import { registry } from './engine/registry'
+import { dateKey } from './plugins/classic/daily'
 import { Game } from './ui/Game'
 
 function localStorageOrNull(): Storage | null {
@@ -12,6 +13,7 @@ function localStorageOrNull(): Storage | null {
 
 export default function App() {
   const [key] = useState(() => dateKey(new Date()))
-  const puzzle = useMemo(() => dailyPuzzle(key), [key])
-  return <Game puzzle={puzzle} dateKey={key} storage={localStorageOrNull()} />
+  const puzzle = useMemo(() => registry.puzzleSource('daily').get(key), [key])
+  const puzzleId = `${key}:${registry.fingerprint()}`
+  return <Game puzzle={puzzle} dateKey={key} puzzleId={puzzleId} storage={localStorageOrNull()} />
 }

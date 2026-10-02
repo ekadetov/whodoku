@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test'
-import { dailyPuzzle } from '../../src/engine/daily'
-import { killerOf } from '../../src/engine/clues'
+import { answerOf } from '../../src/engine/clues'
 import { solve } from '../../src/engine/solver'
+import { registerBuiltins } from '../../src/plugins'
+import { dailyPuzzle } from '../../src/plugins/classic/daily'
 
 const DAY = '2026-10-02'
+
+registerBuiltins()
 
 test.beforeEach(async ({ page }) => {
   await page.clock.setFixedTime(new Date(`${DAY}T12:00:00Z`))
@@ -12,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 test('solves the daily puzzle through the UI and keeps the result after reload', async ({ page }) => {
   const puzzle = dailyPuzzle(DAY)
   const placement = solve(puzzle)!
-  const killer = killerOf(puzzle, placement)!
+  const killer = answerOf(puzzle, placement)!
 
   await page.goto('./')
   await expect(page.getByRole('heading', { name: 'Whodoku' })).toBeVisible()
