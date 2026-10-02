@@ -1,1 +1,55 @@
-body { margin: 0; font-family: system-ui, sans-serif; }
+:root {
+  color-scheme: light;
+  --ink: #1f2430;
+  --paper: #fbf8f1;
+  --accent: #7a2e3b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.game { max-width: 640px; margin: 0 auto; padding: 1rem; }
+h1 { margin: 0; letter-spacing: 0.04em; color: var(--accent); }
+h2 { margin: 1.2rem 0 0.4rem; font-size: 1.1rem; }
+.sub { margin: 0.2rem 0 0.8rem; color: #555; font-size: 0.9rem; }
+.how { margin-bottom: 0.8rem; font-size: 0.9rem; }
+.how summary { cursor: pointer; font-weight: 600; }
+button { font: inherit; cursor: pointer; }
+.toolbar button, .accuse-buttons button {
+  padding: 0.5rem 0.9rem; border: 1px solid var(--ink); border-radius: 6px; background: #fff; color: var(--ink);
+}
+.toolbar button:disabled { opacity: 0.45; cursor: default; }
+.toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.8rem; }
+.tray { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
+.tray-item {
+  display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.6rem 0.25rem 0.3rem;
+  border: 1px solid #bbb; border-radius: 999px; background: #fff;
+}
+.tray-item.placed { opacity: 0.55; }
+.tray-item.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); opacity: 1; }
+.chip {
+  display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem;
+  border-radius: 50%; color: #fff; font-weight: 700; font-size: 0.85rem; flex: none;
+}
+.board { display: grid; width: 100%; aspect-ratio: 1; border: 3px solid var(--ink); }
+.cell {
+  position: relative; display: flex; align-items: center; justify-content: center; padding: 0; min-width: 0;
+  font-size: clamp(0.8rem, 3.2vw, 1.4rem);
+}
+.cell:disabled { cursor: default; }
+.cell.conflict { outline: 3px solid #d12; outline-offset: -3px; }
+.cell.picked { outline: 3px solid var(--accent); outline-offset: -3px; }
+.cell .glyph { position: absolute; top: 2%; left: 6%; line-height: 1; }
+.cell .mark { color: #a22; font-weight: 700; font-size: 1.3em; }
+.cell .chip { width: 62%; height: 62%; font-size: 0.9em; }
+.notice { min-height: 1.4rem; margin: 0.6rem 0 0; font-weight: 600; color: var(--accent); }
+.accuse, .win { margin-top: 0.6rem; padding: 0.8rem; border: 2px solid var(--accent); border-radius: 8px; background: #fff; }
+.accuse h2, .win h2 { margin-top: 0; }
+.accuse-buttons { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.clues { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.clue { border: 1px solid #ccc; border-radius: 8px; background: #fff; }
+.clue.victim { border-color: var(--accent); background: #fbeff1; }
+.clue.failing { border-color: #d12; background: #fdecec; }
+.clue.struck .clue-text { text-decoration: line-through; color: #888; }
+.clue-button {
+  display: flex; align-items: center; gap: 0.6rem; width: 100%; padding: 0.4rem 0.6rem;
+  border: 0; background: none; text-align: left; color: inherit;
+}
