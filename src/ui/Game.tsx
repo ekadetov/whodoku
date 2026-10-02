@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useState } from 'react'
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { answerOf, evaluate, isLegalPlacement, isSolved } from '../engine/clues'
 import { registry } from '../engine/registry'
 import { isOccupiable } from '../engine/types'
@@ -8,9 +8,8 @@ import { loadState, saveState } from '../state/storage'
 import type { ReadableStorage, WritableStorage } from '../state/storage'
 import { currentStreak, recordSolve } from '../state/streak'
 import { Board } from './Board'
-import { CluePanel } from './CluePanel'
-import { Legend } from './Legend'
-import { SuspectTray } from './SuspectTray'
+import { SuspectPanel } from './SuspectPanel'
+import { ToolsPanel } from './ToolsPanel'
 
 interface GameProps {
   puzzle: Puzzle
@@ -46,6 +45,9 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   )
   const [notice, setNotice] = useState('')
   const [check, setCheck] = useState<{ key: string; failing: number[] } | null>(null)
+  const [accusing, setAccusing] = useState(false)
+  const [help, setHelp] = useState(false)
+  const boardRef = useRef<HTMLDivElement | null>(null)
 
   const { progress, selected, tool } = game
   const solved = progress.solvedAt !== null
@@ -62,7 +64,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const marks = useMemo(() => new Set(progress.marks), [progress.marks])
   const failing = new Set(check?.key === placementKey ? check.failing : [])
   const readyToAccuse = complete !== null && !solved && isSolved(puzzle, complete)
-  const killer = complete !== null ? answerOf(puzzle, complete) : null
+  const culprit = complete !== null ? answerOf(puzzle, complete) : null
 
   const onCellClick = (pos: Pos) => {
     if (solved || !isOccupiable(puzzle.cells[pos.r][pos.c])) return
@@ -75,14 +77,14 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
     else dispatch({ type: 'toggleMark', pos })
   }
 
-  const onCheck = () => {
+  const runCheck = (): boolean => {
     if (complete === null) {
       setNotice('Place every suspect before checking.')
-      return
+      return false
     }
     if (!isLegalPlacement(puzzle, complete)) {
       setNotice('Two suspects share a row or column.')
-      return
+      return false
     }
     const bad = puzzle.suspects
       .map((_, i) => i)
@@ -93,10 +95,19 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
         ? 'Everything fits. Now name the killer.'
         : `${bad.length} suspect${bad.length === 1 ? '' : 's'} contradict their clues.`,
     )
+    return bad.length === 0
+  }
+
+  const onSubmit = () => {
+    if (runCheck()) setAccusing(true)
+  }
+
+  const onClearAll = () => {
+    if (window.confirm('Clear the whole board?')) dispatch({ type: 'reset' })
   }
 
   const onAccuse = (suspect: number) => {
-    if (suspect !== killer) {
+    if (suspect !== culprit) {
       setNotice(`${puzzle.suspects[suspect].name} is innocent. Think again.`)
       return
     }
@@ -114,99 +125,104 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
 
   return (
     <main className="game">
-      <header>
+      <header className="topbar">
         <h1>Whodoku</h1>
         <p className="sub">
           Daily puzzle {dateKey} (UTC) &middot; Streak {streak} &middot; Best {saved.streak.best}
         </p>
       </header>
 
-      <details className="how">
-        <summary>How to play</summary>
-        <ul>
-          <li>Place every suspect on the grid. Nobody may share a row or column with another suspect.</li>
-          <li>Blocked squares (tables, shelves, plants, rocks, trees, TVs) cannot be occupied.</li>
-          <li>Each clue is about the suspect it names. Rooms are outlined in dark borders.</li>
-          <li>The victim was alone with the killer. Once everything fits, name the killer.</li>
-          <li>Tap a suspect, then a square. Tap an empty square with nobody selected to mark it with an x.</li>
-        </ul>
-      </details>
+      {help && (
+        <section className="how" aria-label="How to play">
+          <ul>
+            <li>Place every suspect on the grid. Nobody may share a row or column with another suspect.</li>
+            <li>Blocked squares (tables, shelves, plants, rocks, trees, TVs) cannot be occupied.</li>
+            <li>Each clue is about the suspect it names. Rooms are outlined in dark borders.</li>
+            <li>The victim was alone with the killer. Once everything fits, name the killer.</li>
+            <li>Tap a suspect, then a square, or drag a suspect onto the grid.</li>
+            <li>Pick the X tool and drag across squares to cross them out. The eraser clears squares; hold it to clear the board.</li>
+          </ul>
+        </section>
+      )}
 
-      <SuspectTray
-        puzzle={puzzle}
-        placements={progress.placements}
-        selected={selected}
-        onSelect={(suspect) => dispatch({ type: 'select', suspect })}
-      />
+      <div className="stage">
+        <SuspectPanel
+          puzzle={puzzle}
+          placements={progress.placements}
+          selected={selected}
+          struck={progress.struck}
+          failing={failing}
+          boardRef={boardRef}
+          onSelect={(suspect) => dispatch({ type: 'select', suspect })}
+          onToggleStrike={(suspect) => dispatch({ type: 'toggleStrike', suspect })}
+          onDrop={(suspect, pos) => {
+            if (solved) return
+            dispatch({ type: 'select', suspect })
+            dispatch({ type: 'place', pos })
+          }}
+        />
 
-      <Board
-        puzzle={puzzle}
-        placements={progress.placements}
-        marks={marks}
-        selected={selected}
-        conflicts={conflicts}
-        tool={registry.tools().find((t) => t.id === tool)}
-        onCellClick={onCellClick}
-        onStroke={(cells, mode) => dispatch({ type: 'paint', cells, mode })}
-      />
+        <section className="play">
+          <Board
+            puzzle={puzzle}
+            placements={progress.placements}
+            marks={marks}
+            selected={selected}
+            conflicts={conflicts}
+            tool={registry.tools().find((t) => t.id === tool)}
+            gridRef={boardRef}
+            onCellClick={onCellClick}
+            onStroke={(cells, mode) => dispatch({ type: 'paint', cells, mode })}
+          />
 
-      <Legend puzzle={puzzle} />
+          <p className="notice" role="status">
+            {notice}
+          </p>
 
-      <div className="toolbar">
-        <button type="button" onClick={onCheck} disabled={solved}>
-          Check
-        </button>
-        <button
-          type="button"
-          onClick={() => selected !== null && dispatch({ type: 'remove', suspect: selected })}
-          disabled={solved || selected === null || !progress.placements[selected]}
-        >
-          Remove selected
-        </button>
-        <button type="button" onClick={() => dispatch({ type: 'reset' })} disabled={solved}>
-          Reset
-        </button>
+          {accusing && readyToAccuse && (
+            <section className="accuse" aria-label="Accusation">
+              <h2>Who did it?</h2>
+              <div className="accuse-buttons">
+                {puzzle.suspects.map(
+                  (suspect, i) =>
+                    i !== puzzle.victim && (
+                      <button key={suspect.name} type="button" data-testid={`accuse-${i}`} onClick={() => onAccuse(i)}>
+                        {suspect.name}
+                      </button>
+                    ),
+                )}
+              </div>
+            </section>
+          )}
+
+          {solved && culprit !== null && (
+            <section className="win" aria-label="Case closed">
+              <h2>Case closed!</h2>
+              <p>
+                {puzzle.suspects[culprit].name} did it. Solved in {formatDuration(progress.solvedAt! - progress.startedAt)}.
+              </p>
+              <p>
+                Streak: {saved.streak.current} &middot; Best: {saved.streak.best}. Come back tomorrow for a new case.
+              </p>
+            </section>
+          )}
+        </section>
+
+        <ToolsPanel
+          tools={registry.tools()}
+          active={tool}
+          canUndo={game.history.length > 0}
+          canSubmit={allPlaced}
+          locked={solved}
+          helpOpen={help}
+          onTool={(id) => dispatch({ type: 'setTool', tool: id })}
+          onUndo={() => dispatch({ type: 'undo' })}
+          onHint={runCheck}
+          onSubmit={onSubmit}
+          onClearAll={onClearAll}
+          onToggleHelp={() => setHelp((open) => !open)}
+        />
       </div>
-
-      <p className="notice" role="status">
-        {notice}
-      </p>
-
-      {readyToAccuse && (
-        <section className="accuse" aria-label="Accusation">
-          <h2>Who did it?</h2>
-          <div className="accuse-buttons">
-            {puzzle.suspects.map(
-              (suspect, i) =>
-                i !== puzzle.victim && (
-                  <button key={suspect.name} type="button" data-testid={`accuse-${i}`} onClick={() => onAccuse(i)}>
-                    {suspect.name}
-                  </button>
-                ),
-            )}
-          </div>
-        </section>
-      )}
-
-      {solved && killer !== null && (
-        <section className="win" aria-label="Case closed">
-          <h2>Case closed!</h2>
-          <p>
-            {puzzle.suspects[killer].name} did it. Solved in {formatDuration(progress.solvedAt! - progress.startedAt)}.
-          </p>
-          <p>
-            Streak: {saved.streak.current} &middot; Best: {saved.streak.best}. Come back tomorrow for a new case.
-          </p>
-        </section>
-      )}
-
-      <h2>Clues</h2>
-      <CluePanel
-        puzzle={puzzle}
-        struck={progress.struck}
-        failing={failing}
-        onToggleStrike={(suspect) => dispatch({ type: 'toggleStrike', suspect })}
-      />
     </main>
   )
 }

@@ -9,6 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: { globPatterns: ['**/*.{js,css,html,svg,png,woff2}'] },
       includeAssets: ['icon.svg'],
       manifest: {
         name: 'Whodoku',

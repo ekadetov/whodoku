@@ -26,6 +26,7 @@ test('solves the daily puzzle through the UI and keeps the result after reload',
     await page.getByTestId(`cell-${pos.r}-${pos.c}`).click()
   }
 
+  await page.getByRole('button', { name: /Submit/ }).click()
   await page.getByTestId(`accuse-${killer}`).click()
   await expect(page.getByText('Case closed!')).toBeVisible()
   await expect(page.getByText(`${puzzle.suspects[killer].name} did it`)).toBeVisible()
