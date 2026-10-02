@@ -4,11 +4,13 @@ import type { PaintMode, ToolDef } from '../engine/plugin'
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
 import { posKey } from '../state/reducer'
-import { spriteFor } from './art/lookup'
+import { labelFor, spriteFor } from './art/lookup'
 import { portraitFor } from './art/portrait'
 import { Sprite } from './art/Sprite'
 import { roomSurface } from './art/texture'
 import { cellAt, lineCells } from './boardGeometry'
+import { NO_HIGHLIGHT } from './highlight'
+import type { Highlight } from './highlight'
 
 interface BoardProps {
   puzzle: Puzzle
@@ -17,6 +19,8 @@ interface BoardProps {
   selected: number | null
   conflicts: ReadonlySet<string>
   tool: ToolDef | undefined
+  highlight?: Highlight
+  selectedClue?: string | null
   gridRef?: RefObject<HTMLDivElement | null>
   onCellClick: (pos: Pos) => void
   onStroke: (cells: Pos[], mode: PaintMode) => void
@@ -30,9 +34,38 @@ interface Stroke {
 const THICK = 'var(--wall-thick)'
 const THIN = 'var(--wall-thin)'
 
-export function Board({ puzzle, placements, marks, selected, conflicts, tool, gridRef, onCellClick, onStroke }: BoardProps) {
+const EDGE = '4px'
+
+/** Inset shadows along the sides of a cell that touch another room, for outlining a room. */
+function roomEdges(puzzle: Puzzle, r: number, c: number): string {
+  const room = puzzle.cells[r][c].room
+  const outside = (nr: number, nc: number) => puzzle.cells[nr]?.[nc]?.room !== room
+  return [
+    outside(r - 1, c) ? `inset 0 ${EDGE} 0 0 var(--hint)` : '',
+    outside(r, c + 1) ? `inset -${EDGE} 0 0 0 var(--hint)` : '',
+    outside(r + 1, c) ? `inset 0 -${EDGE} 0 0 var(--hint)` : '',
+    outside(r, c - 1) ? `inset ${EDGE} 0 0 0 var(--hint)` : '',
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
+
+export function Board({
+  puzzle,
+  placements,
+  marks,
+  selected,
+  conflicts,
+  tool,
+  highlight = NO_HIGHLIGHT,
+  selectedClue = null,
+  gridRef,
+  onCellClick,
+  onStroke,
+}: BoardProps) {
   const strokeRef = useRef<Stroke | null>(null)
   const [preview, setPreview] = useState<Stroke | null>(null)
+  const [hovered, setHovered] = useState<Pos | null>(null)
   const paint = tool?.paint
 
   const occupantAt = new Map<string, number>()
@@ -91,6 +124,10 @@ export function Board({ puzzle, placements, marks, selected, conflicts, tool, gr
   }
 
   const previewing = new Set(preview?.cells.map(posKey))
+  const hoveredRoom = hovered ? puzzle.cells[hovered.r][hovered.c].room : null
+  const hover = (pos: Pos | null) => (e: PointerEvent<HTMLElement>) => {
+    if (e.pointerType !== 'touch') setHovered(pos)
+  }
 
   return (
     <div
@@ -113,8 +150,13 @@ export function Board({ puzzle, placements, marks, selected, conflicts, tool, gr
           const marked = marks.has(key) && occupant === undefined
           const occupantName = occupant === undefined ? '' : `, ${puzzle.suspects[occupant].name}`
           const label = `Row ${r + 1}, column ${c + 1}, ${puzzle.rooms[cell.room]}${cell.object ? `, ${cell.object}` : ''}${occupantName}`
+          const isHovered = hovered !== null && hovered.r === r && hovered.c === c
+          const outlined = highlight.rooms.has(cell.room) || hoveredRoom === cell.room
           const classes = [
             'cell',
+            highlight.cells.has(key) ? 'hint' : '',
+            isHovered ? 'hovered' : '',
+            outlined ? 'outlined' : '',
             conflicts.has(key) ? 'conflict' : '',
             selected !== null && occupant === selected ? 'picked' : '',
             previewing.has(key) && preview ? `stroke-${preview.mode}` : '',
@@ -130,8 +172,11 @@ export function Board({ puzzle, placements, marks, selected, conflicts, tool, gr
               aria-label={label}
               aria-disabled={blocked || undefined}
               className={classes.filter(Boolean).join(' ')}
+              onPointerEnter={hover(pos)}
+              onPointerLeave={hover(null)}
               style={{
                 ...roomSurface(cell.room),
+                ...(outlined ? { ['--edge-shadow' as string]: roomEdges(puzzle, r, c) } : {}),
                 borderTop: differs(r - 1, c) ? THICK : THIN,
                 borderBottom: differs(r + 1, c) ? THICK : THIN,
                 borderLeft: differs(r, c - 1) ? THICK : THIN,
@@ -153,8 +198,14 @@ export function Board({ puzzle, placements, marks, selected, conflicts, tool, gr
                   <path d="M22 22L78 78M78 22L22 78" />
                 </svg>
               )}
+              {isHovered && (
+                <>
+                  <span className="tip">{cell.object ? labelFor(puzzle, cell.object) : puzzle.rooms[cell.room]}</span>
+                  {selectedClue && <span className="tip clue">{selectedClue}</span>}
+                </>
+              )}
               {occupant !== undefined && (
-                <span className="token">
+                <span className={`token${highlight.suspects.has(occupant) ? ' linked' : ''}`}>
                   <Sprite sprite={portraitFor(puzzle.suspects[occupant].name)} />
                 </span>
               )}

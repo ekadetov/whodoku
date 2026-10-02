@@ -5,6 +5,7 @@ import { tiny } from '../engine/fixtures'
 import type { PaintMode, ToolDef } from '../engine/plugin'
 import type { Pos } from '../engine/types'
 import { Board } from './Board'
+import type { Highlight } from './highlight'
 
 afterEach(cleanup)
 
@@ -15,7 +16,15 @@ const SELECT: ToolDef = { id: 'select', label: 'Select' }
 // A 4 x 4 board drawn 400px wide at the origin: every cell is 100px, so cell (r, c) centers at (100c + 50, 100r + 50).
 const center = (r: number, c: number) => ({ clientX: c * 100 + 50, clientY: r * 100 + 50 })
 
-function setup(options: { tool?: ToolDef; marks?: string[]; placements?: Record<number, Pos> } = {}) {
+interface SetupOptions {
+  tool?: ToolDef
+  marks?: string[]
+  placements?: Record<number, Pos>
+  highlight?: Highlight
+  selectedClue?: string | null
+}
+
+function setup(options: SetupOptions = {}) {
   const onStroke = vi.fn<(cells: Pos[], mode: PaintMode) => void>()
   const onCellClick = vi.fn<(pos: Pos) => void>()
   render(
@@ -26,6 +35,8 @@ function setup(options: { tool?: ToolDef; marks?: string[]; placements?: Record<
       selected={null}
       conflicts={new Set()}
       tool={options.tool ?? X}
+      highlight={options.highlight}
+      selectedClue={options.selectedClue}
       onCellClick={onCellClick}
       onStroke={onStroke}
     />,
@@ -172,5 +183,81 @@ describe('Board contents', () => {
     expect(screen.getByTestId('cell-1-1').querySelector('svg.sprite')).not.toBeNull()
     expect(screen.getByTestId('cell-1-1')).toHaveAttribute('aria-disabled', 'true')
     expect(screen.getByTestId('cell-1-0')).not.toHaveAttribute('aria-disabled')
+  })
+})
+
+describe('Board hints', () => {
+  const hint = (cells: string[], rooms: number[] = [], suspects: number[] = []): Highlight => ({
+    cells: new Set(cells),
+    rooms: new Set(rooms),
+    suspects: new Set(suspects),
+  })
+
+  it('fills the highlighted cells and nothing else', () => {
+    setup({ tool: SELECT, highlight: hint(['1,0', '2,1']) })
+    expect(screen.getByTestId('cell-1-0')).toHaveClass('hint')
+    expect(screen.getByTestId('cell-2-1')).toHaveClass('hint')
+    expect(screen.getByTestId('cell-0-0')).not.toHaveClass('hint')
+  })
+
+  it('rings a highlighted suspect token', () => {
+    setup({ tool: SELECT, placements: { 1: { r: 0, c: 1 }, 2: { r: 2, c: 2 } }, highlight: hint([], [], [1]) })
+    expect(screen.getByTestId('cell-0-1').querySelector('.token')).toHaveClass('linked')
+    expect(screen.getByTestId('cell-2-2').querySelector('.token')).not.toHaveClass('linked')
+  })
+
+  it('frames a hovered cell and names its object', () => {
+    setup({ tool: SELECT })
+    fireEvent.pointerEnter(screen.getByTestId('cell-1-0'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('cell-1-0')).toHaveClass('hovered')
+    expect(screen.getByTestId('cell-1-0').querySelector('.tip')).toHaveTextContent('Chair')
+    fireEvent.pointerLeave(screen.getByTestId('cell-1-0'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('cell-1-0')).not.toHaveClass('hovered')
+    expect(document.querySelector('.tip')).toBeNull()
+  })
+
+  it('names the room when the hovered cell holds no object', () => {
+    setup({ tool: SELECT })
+    fireEvent.pointerEnter(screen.getByTestId('cell-0-0'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('cell-0-0').querySelector('.tip')).toHaveTextContent('Hall')
+  })
+
+  it('still frames a blocked cell so it can be styled as unavailable', () => {
+    setup({ tool: SELECT })
+    fireEvent.pointerEnter(screen.getByTestId('cell-1-1'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('cell-1-1')).toHaveClass('hovered')
+    expect(screen.getByTestId('cell-1-1')).toHaveAttribute('aria-disabled', 'true')
+    expect(screen.getByTestId('cell-1-1').querySelector('.tip')).toHaveTextContent('Shelf')
+  })
+
+  it('repeats the selected suspect\'s clue in the tooltip', () => {
+    setup({ tool: SELECT, selectedClue: 'Bob was sitting on a chair.' })
+    fireEvent.pointerEnter(screen.getByTestId('cell-2-3'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('cell-2-3').querySelector('.tip.clue')).toHaveTextContent('Bob was sitting on a chair.')
+  })
+
+  it('ignores touch pointers, which have no hover', () => {
+    setup({ tool: SELECT })
+    fireEvent.pointerEnter(screen.getByTestId('cell-1-0'), { pointerType: 'touch' })
+    expect(screen.getByTestId('cell-1-0')).not.toHaveClass('hovered')
+  })
+
+  it('outlines the room of the hovered cell along its outer edges only', () => {
+    setup({ tool: SELECT })
+    fireEvent.pointerEnter(screen.getByTestId('cell-0-0'), { pointerType: 'mouse' })
+    const corner = screen.getByTestId('cell-0-0')
+    expect(corner).toHaveClass('outlined')
+    const shadow = corner.style.getPropertyValue('--edge-shadow')
+    expect(shadow).toContain('inset 0 4px 0 0')
+    expect(shadow).toContain('inset 4px 0 0 0')
+    expect(shadow).not.toContain('inset -4px')
+    expect(shadow).not.toContain('inset 0 -4px')
+    expect(screen.getByTestId('cell-3-3')).not.toHaveClass('outlined')
+  })
+
+  it('outlines the rooms a clue names, without hovering', () => {
+    setup({ tool: SELECT, highlight: hint([], [3]) })
+    expect(screen.getByTestId('cell-3-3')).toHaveClass('outlined')
+    expect(screen.getByTestId('cell-0-0')).not.toHaveClass('outlined')
   })
 })
