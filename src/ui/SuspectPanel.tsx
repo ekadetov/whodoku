@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PointerEvent, RefObject } from 'react'
-import { renderClue } from '../engine/clues'
+import { clueParts } from '../engine/clues'
+import type { ClueText } from '../engine/plugin'
+import { registry } from '../engine/registry'
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
 import { portraitFor } from './art/portrait'
@@ -13,10 +15,12 @@ interface SuspectPanelProps {
   selected: number | null
   struck: readonly number[]
   failing: ReadonlySet<number>
+  linked: ReadonlySet<number>
   boardRef: RefObject<HTMLDivElement | null>
   onSelect: (suspect: number | null) => void
   onToggleStrike: (suspect: number) => void
   onDrop: (suspect: number, pos: Pos) => void
+  onHover: (suspect: number | null) => void
 }
 
 interface Ghost {
@@ -27,22 +31,52 @@ interface Ghost {
 
 const DRAG_THRESHOLD = 6
 
+function ClueView({ parts, subject, glossary }: { parts: ClueText[]; subject: number; glossary: Readonly<Record<string, string>> }) {
+  return parts.map((part, i) => {
+    if (part.kind === 'text' || (part.kind === 'person' && part.suspect === subject)) return part.text
+    if (part.kind === 'relation') {
+      return (
+        <b key={i} className="term" data-tip={glossary[part.term]}>
+          {part.text}
+        </b>
+      )
+    }
+    return <b key={i}>{part.text}</b>
+  })
+}
+
 export function SuspectPanel({
   puzzle,
   placements,
   selected,
   struck,
   failing,
+  linked,
   boardRef,
   onSelect,
   onToggleStrike,
   onDrop,
+  onHover,
 }: SuspectPanelProps) {
   const [ghost, setGhost] = useState<Ghost | null>(null)
   const dragged = useRef(false)
   const stopDrag = useRef<(() => void) | null>(null)
+  const pointerDriven = useRef(false)
+  const glossary = registry.theme(puzzle.themeId).glossary
 
   useEffect(() => () => stopDrag.current?.(), [])
+
+  // A card focused by pointer is already handled by hover and selection; only keyboard focus counts as a hint trigger.
+  useEffect(() => {
+    const byPointer = () => (pointerDriven.current = true)
+    const byKeyboard = () => (pointerDriven.current = false)
+    window.addEventListener('pointerdown', byPointer, true)
+    window.addEventListener('keydown', byKeyboard, true)
+    return () => {
+      window.removeEventListener('pointerdown', byPointer, true)
+      window.removeEventListener('keydown', byKeyboard, true)
+    }
+  }, [])
 
   const beginDrag = (e: PointerEvent<HTMLElement>, suspect: number) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return
@@ -81,7 +115,13 @@ export function SuspectPanel({
         {puzzle.suspects.map((suspect, i) => (
           <li
             key={suspect.name}
-            className={`card${placements[i] ? ' placed' : ''}${i === puzzle.victim ? ' victim' : ''}`}
+            className={`card${placements[i] ? ' placed' : ''}${i === puzzle.victim ? ' victim' : ''}${selected === i ? ' selected' : ''}${linked.has(i) ? ' linked' : ''}`}
+            onPointerEnter={(e) => e.pointerType !== 'touch' && onHover(i)}
+            onPointerLeave={(e) => e.pointerType !== 'touch' && onHover(null)}
+            onFocus={() => !pointerDriven.current && onHover(i)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onHover(null)
+            }}
           >
             <button
               type="button"
@@ -115,8 +155,12 @@ export function SuspectPanel({
             >
               {puzzle.clues
                 .filter((clue) => clue.suspect === i)
-                .map((clue) => renderClue(clue, puzzle))
-                .join(' ')}
+                .map((clue, n) => (
+                  <span key={n}>
+                    {n > 0 && ' '}
+                    <ClueView parts={clueParts(clue, puzzle)} subject={i} glossary={glossary} />
+                  </span>
+                ))}
             </button>
           </li>
         ))}

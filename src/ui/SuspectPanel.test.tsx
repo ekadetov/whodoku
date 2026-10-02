@@ -8,12 +8,21 @@ import { SuspectPanel } from './SuspectPanel'
 afterEach(cleanup)
 
 // The board is 400px wide at the origin, so cell (r, c) spans [100c, 100c + 100) x [100r, 100r + 100).
-function setup(options: { placements?: Record<number, Pos>; selected?: number | null; struck?: number[]; failing?: number[] } = {}) {
+interface SetupOptions {
+  placements?: Record<number, Pos>
+  selected?: number | null
+  struck?: number[]
+  failing?: number[]
+  linked?: number[]
+}
+
+function setup(options: SetupOptions = {}) {
   const board = document.createElement('div')
   vi.spyOn(board, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 400, height: 400 } as DOMRect)
   const onSelect = vi.fn()
   const onToggleStrike = vi.fn()
   const onDrop = vi.fn()
+  const onHover = vi.fn()
   render(
     <SuspectPanel
       puzzle={tiny}
@@ -21,13 +30,15 @@ function setup(options: { placements?: Record<number, Pos>; selected?: number | 
       selected={options.selected ?? null}
       struck={options.struck ?? []}
       failing={new Set(options.failing ?? [])}
+      linked={new Set(options.linked ?? [])}
       boardRef={{ current: board }}
       onSelect={onSelect}
       onToggleStrike={onToggleStrike}
       onDrop={onDrop}
+      onHover={onHover}
     />,
   )
-  return { onSelect, onToggleStrike, onDrop }
+  return { onSelect, onToggleStrike, onDrop, onHover }
 }
 
 const drag = (card: HTMLElement, to: { x: number; y: number }) => {
@@ -107,5 +118,52 @@ describe('SuspectPanel dragging', () => {
     fireEvent.click(card)
     expect(onDrop).not.toHaveBeenCalled()
     expect(onSelect).toHaveBeenCalledWith(1)
+  })
+})
+
+describe('SuspectPanel hints', () => {
+  it('bolds what a clue names but not the suspect it belongs to', () => {
+    setup()
+    const bold = (id: string) => [...screen.getByTestId(id).querySelectorAll('b')].map((b) => b.textContent)
+    expect(bold('clue-1')).toEqual(['chair'])
+    expect(bold('clue-0')).toEqual(['alone with the killer'])
+  })
+
+  it('explains relation words with the theme glossary', () => {
+    setup()
+    const term = screen.getByTestId('clue-0').querySelector('b.term')!
+    expect(term).toHaveAttribute('data-tip', expect.stringContaining('only two people in the room'))
+  })
+
+  it('reports hover over any part of a card, and leaving it', () => {
+    const { onHover } = setup()
+    const card = screen.getByTestId('suspect-2').closest('li')!
+    fireEvent.pointerEnter(screen.getByTestId('suspect-2').querySelector('.portrait')!, { pointerType: 'mouse' })
+    expect(onHover).toHaveBeenLastCalledWith(2)
+    fireEvent.pointerLeave(card, { pointerType: 'mouse' })
+    expect(onHover).toHaveBeenLastCalledWith(null)
+    fireEvent.pointerEnter(screen.getByTestId('clue-3'), { pointerType: 'mouse' })
+    expect(onHover).toHaveBeenLastCalledWith(3)
+  })
+
+  it('reports keyboard focus inside a card', () => {
+    const { onHover } = setup()
+    fireEvent.focus(screen.getByTestId('clue-1'))
+    expect(onHover).toHaveBeenLastCalledWith(1)
+    fireEvent.blur(screen.getByTestId('clue-1'))
+    expect(onHover).toHaveBeenLastCalledWith(null)
+  })
+
+  it('ignores touch pointers, which have no hover', () => {
+    const { onHover } = setup()
+    fireEvent.pointerEnter(screen.getByTestId('suspect-2'), { pointerType: 'touch' })
+    expect(onHover).not.toHaveBeenCalled()
+  })
+
+  it('marks the selected card and cards named by the active clue', () => {
+    setup({ selected: 2, linked: [3] })
+    expect(screen.getByTestId('suspect-2').closest('li')).toHaveClass('selected')
+    expect(screen.getByTestId('suspect-3').closest('li')).toHaveClass('linked')
+    expect(screen.getByTestId('suspect-1').closest('li')).not.toHaveClass('selected')
   })
 })

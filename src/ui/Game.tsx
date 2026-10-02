@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react'
-import { answerOf, evaluate, isLegalPlacement, isSolved } from '../engine/clues'
+import { answerOf, evaluate, isLegalPlacement, isSolved, renderClue } from '../engine/clues'
+import { suspectHints } from '../engine/hints'
 import { registry } from '../engine/registry'
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
@@ -8,6 +9,8 @@ import { loadState, saveState } from '../state/storage'
 import type { ReadableStorage, WritableStorage } from '../state/storage'
 import { currentStreak, recordSolve } from '../state/streak'
 import { Board } from './Board'
+import { NO_HIGHLIGHT } from './highlight'
+import type { Highlight } from './highlight'
 import { SuspectPanel } from './SuspectPanel'
 import { ToolsPanel } from './ToolsPanel'
 
@@ -47,6 +50,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const [check, setCheck] = useState<{ key: string; failing: number[] } | null>(null)
   const [accusing, setAccusing] = useState(false)
   const [help, setHelp] = useState(false)
+  const [hovered, setHovered] = useState<number | null>(null)
   const boardRef = useRef<HTMLDivElement | null>(null)
 
   const { progress, selected, tool } = game
@@ -63,6 +67,23 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const conflicts = useMemo(() => findConflicts(progress.placements), [progress.placements])
   const marks = useMemo(() => new Set(progress.marks), [progress.marks])
   const failing = new Set(check?.key === placementKey ? check.failing : [])
+  const active = hovered ?? selected
+  const highlight = useMemo<Highlight>(() => {
+    if (active === null) return NO_HIGHLIGHT
+    const hint = suspectHints(puzzle, active)
+    return {
+      cells: new Set(hint.cells.map(posKey)),
+      rooms: new Set(hint.rooms),
+      suspects: new Set(hint.suspects),
+    }
+  }, [puzzle, active])
+  const selectedClue =
+    selected === null
+      ? null
+      : puzzle.clues
+          .filter((clue) => clue.suspect === selected)
+          .map((clue) => renderClue(clue, puzzle))
+          .join(' ')
   const readyToAccuse = complete !== null && !solved && isSolved(puzzle, complete)
   const culprit = complete !== null ? answerOf(puzzle, complete) : null
 
@@ -152,9 +173,11 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
           selected={selected}
           struck={progress.struck}
           failing={failing}
+          linked={highlight.suspects}
           boardRef={boardRef}
           onSelect={(suspect) => dispatch({ type: 'select', suspect })}
           onToggleStrike={(suspect) => dispatch({ type: 'toggleStrike', suspect })}
+          onHover={setHovered}
           onDrop={(suspect, pos) => {
             if (solved) return
             dispatch({ type: 'select', suspect })
@@ -170,6 +193,8 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
             selected={selected}
             conflicts={conflicts}
             tool={registry.tools().find((t) => t.id === tool)}
+            highlight={highlight}
+            selectedClue={selectedClue}
             gridRef={boardRef}
             onCellClick={onCellClick}
             onStroke={(cells, mode) => dispatch({ type: 'paint', cells, mode })}

@@ -7,6 +7,7 @@
   --border: #333333;
   --muted: #666666;
   --accent: #7a2e3b;
+  --hint: #2f6fed;
   --active: #f6e7b4;
   --mark: #1f2430;
   --shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
@@ -26,6 +27,7 @@
     --border: #0a0814;
     --muted: #a7a3b5;
     --accent: #e58b9b;
+    --hint: #6ea0ff;
     --active: #5a4a1d;
     --shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
     --shadow-small: 2px 2px 0 rgba(0, 0, 0, 0.6);
@@ -84,7 +86,19 @@ h1, h2 { margin: 0; }
 .card.victim .plate { color: var(--accent); }
 .card.placed .portrait-card { opacity: 0.55; }
 .card.placed .plate::after { content: ' (on board)'; font-family: var(--font-body); font-size: 0.6rem; font-weight: 600; }
-.portrait-card[aria-pressed='true'] { outline: 4px solid var(--accent); outline-offset: 2px; animation: breathe 1.6s ease-in-out infinite; }
+.card.selected .portrait-card, .card.selected .clue-card { border-color: var(--hint); }
+.card.selected .portrait-card { outline: 3px solid var(--hint); outline-offset: 1px; animation: breathe 1.6s ease-in-out infinite; }
+.card.selected .plate { color: var(--hint); }
+.card.linked .portrait-card { outline: 4px solid var(--hint); outline-offset: 2px; }
+.term { position: relative; cursor: help; text-decoration: underline dotted; text-underline-offset: 2px; }
+@media (hover: hover) {
+  .term:hover::after {
+    content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 6px); z-index: 20; width: 14rem;
+    padding: 0.4rem 0.55rem; border: 2px solid var(--border); border-radius: 4px; background: var(--card);
+    box-shadow: var(--shadow-small); color: var(--ink); font-size: 0.75rem; font-weight: 500; line-height: 1.3;
+    text-align: left; text-decoration: none; transform: translateX(-50%); pointer-events: none;
+  }
+}
 .clue-card.struck { color: var(--muted); text-decoration: line-through; }
 .clue-card.failing { background: #fdecec; border-color: #d12; color: #5a0b13; }
 
@@ -106,6 +120,20 @@ h1, h2 { margin: 0; }
   background: #fff; box-shadow: var(--shadow-small); pointer-events: none; animation: pop 0.25s ease-out;
 }
 .cell .token svg { display: block; width: 100%; height: 100%; }
+.cell.hint::after {
+  content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: rgba(47, 111, 237, 0.38); box-shadow: inset 0 0 0 3px var(--hint);
+}
+.cell.outlined::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: var(--edge-shadow); }
+.cell.hovered { z-index: 3; outline: 4px solid #fff; outline-offset: -4px; }
+.cell.hovered[aria-disabled='true'] { outline-color: #e5484d; }
+.cell .tip {
+  position: absolute; left: 50%; bottom: calc(100% + 4px); z-index: 5; padding: 0.15rem 0.5rem; border-radius: 6px;
+  background: #14111c; color: #fff; font-size: 0.75rem; font-weight: 700; white-space: nowrap; pointer-events: none;
+  transform: translateX(-50%);
+}
+.cell .tip.clue { top: calc(100% + 4px); bottom: auto; background: #e9e7ee; color: #1f2430; font-weight: 500; }
+.cell .token.linked { border-color: var(--hint); box-shadow: 0 0 0 3px var(--hint); }
 .cell.conflict { outline: 3px solid #d12; outline-offset: -3px; z-index: 1; }
 .cell.picked { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 1; }
 .cell.stroke-mark { box-shadow: inset 0 0 0 100px rgba(0, 0, 0, 0.14); }

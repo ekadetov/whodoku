@@ -232,3 +232,62 @@ describe('Game tools', () => {
     expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
   })
 })
+
+describe('Game hints', () => {
+  const hovering = (id: string) => fireEvent.pointerEnter(screen.getByTestId(id), { pointerType: 'mouse' })
+  const leaving = (id: string) => fireEvent.pointerLeave(screen.getByTestId(id).closest('li')!, { pointerType: 'mouse' })
+  const hinted = () => [...document.querySelectorAll('.cell.hint')].map((cell) => cell.getAttribute('data-testid'))
+
+  it('lights what a hovered card names and clears it on leave', () => {
+    renderGame(fakeStorage())
+    hovering('suspect-1')
+    expect(hinted().sort()).toEqual(['cell-1-0', 'cell-2-1'])
+    leaving('suspect-1')
+    expect(hinted()).toEqual([])
+  })
+
+  it('also reacts to the clue card and to keyboard focus', () => {
+    renderGame(fakeStorage())
+    hovering('clue-3')
+    expect(hinted()).toEqual(['cell-3-3'])
+    leaving('clue-3')
+    fireEvent.focus(screen.getByTestId('suspect-1'))
+    expect(hinted().sort()).toEqual(['cell-1-0', 'cell-2-1'])
+    fireEvent.blur(screen.getByTestId('suspect-1'))
+    expect(hinted()).toEqual([])
+  })
+
+  it('keeps the selected card lit after the pointer leaves, and lets hover override it', async () => {
+    const user = userEvent.setup()
+    renderGame(fakeStorage())
+    await user.click(screen.getByTestId('suspect-1'))
+    expect(screen.getByTestId('suspect-1').closest('li')).toHaveClass('selected')
+    leaving('suspect-1')
+    expect(hinted().sort()).toEqual(['cell-1-0', 'cell-2-1'])
+    hovering('suspect-3')
+    expect(hinted()).toEqual(['cell-3-3'])
+    leaving('suspect-3')
+    expect(hinted().sort()).toEqual(['cell-1-0', 'cell-2-1'])
+  })
+
+  it('repeats the selected clue when hovering a board cell', async () => {
+    const user = userEvent.setup()
+    renderGame(fakeStorage())
+    await user.click(screen.getByTestId('suspect-1'))
+    fireEvent.pointerEnter(screen.getByTestId('cell-2-3'), { pointerType: 'mouse' })
+    expect(screen.getByTestId('cell-2-3').querySelector('.tip.clue')).toHaveTextContent('Bob was sitting on a chair.')
+    expect(screen.getByTestId('cell-2-3').querySelector('.tip:not(.clue)')).toHaveTextContent('Garden')
+  })
+
+  it('lights another suspect\'s card, and their token, when a clue names them', async () => {
+    const user = userEvent.setup()
+    const puzzle = { ...tiny, clues: [...tiny.clues, { type: 'northOf', suspect: 0, other: 1, delta: 1 }] }
+    render(<Game puzzle={puzzle} dateKey="2026-10-02" storage={fakeStorage()} now={() => 1_000_000} />)
+    await place(user, 1, 1, 0)
+    hovering('suspect-0')
+    expect(screen.getByTestId('suspect-1').closest('li')).toHaveClass('linked')
+    expect(screen.getByTestId('cell-1-0').querySelector('.token')).toHaveClass('linked')
+    leaving('suspect-0')
+    expect(screen.getByTestId('suspect-1').closest('li')).not.toHaveClass('linked')
+  })
+})
