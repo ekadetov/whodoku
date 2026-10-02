@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { answerOf, evaluate, isLegalPlacement, isSolved } from '../engine/clues'
+import { registry } from '../engine/registry'
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
 import { newGame, posKey, reduce } from '../state/reducer'
@@ -46,7 +47,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const [notice, setNotice] = useState('')
   const [check, setCheck] = useState<{ key: string; failing: number[] } | null>(null)
 
-  const { progress, selected } = game
+  const { progress, selected, tool } = game
   const solved = progress.solvedAt !== null
 
   useEffect(() => {
@@ -144,7 +145,9 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
         marks={marks}
         selected={selected}
         conflicts={conflicts}
+        tool={registry.tools().find((t) => t.id === tool)}
         onCellClick={onCellClick}
+        onStroke={(cells, mode) => dispatch({ type: 'paint', cells, mode })}
       />
 
       <Legend puzzle={puzzle} />

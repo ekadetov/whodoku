@@ -36,12 +36,12 @@ describe('Game', () => {
     const user = userEvent.setup()
     renderGame(fakeStorage())
     await place(user, 0, 0, 1)
-    expect(screen.getByTestId('cell-0-1')).toHaveTextContent('A')
+    expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
   })
 
   it('does not allow blocking cells', () => {
     renderGame(fakeStorage())
-    expect(screen.getByTestId('cell-1-1')).toBeDisabled()
+    expect(screen.getByTestId('cell-1-1')).toHaveAttribute('aria-disabled', 'true')
   })
 
   it('highlights suspects sharing a row', async () => {
@@ -57,7 +57,7 @@ describe('Game', () => {
     const user = userEvent.setup()
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('cell-2-3'))
-    expect(screen.getByTestId('cell-2-3')).toHaveTextContent('x')
+    expect(screen.getByTestId('cell-2-3')).toHaveAttribute('data-marked', 'true')
   })
 
   it('asks for a complete board before checking', async () => {
@@ -104,7 +104,7 @@ describe('Game', () => {
     await place(user, 0, 0, 1)
     first.unmount()
     renderGame(storage)
-    expect(screen.getByTestId('cell-0-1')).toHaveTextContent('A')
+    expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
   })
 
   it('discards saved progress that belongs to a different puzzle id', async () => {
@@ -114,6 +114,6 @@ describe('Game', () => {
     await place(user, 0, 0, 1)
     first.unmount()
     render(<Game puzzle={tiny} dateKey="2026-10-02" puzzleId="b" storage={storage} now={() => 1_000_000} />)
-    expect(screen.getByTestId('cell-0-1')).not.toHaveTextContent('A')
+    expect(screen.getByTestId('cell-0-1')).not.toHaveAttribute('data-occupant')
   })
 })
