@@ -37,7 +37,8 @@ button { font: inherit; cursor: pointer; }
 .cell:disabled { cursor: default; }
 .cell.conflict { outline: 3px solid #d12; outline-offset: -3px; }
 .cell.picked { outline: 3px solid var(--accent); outline-offset: -3px; }
-.cell .glyph { position: absolute; top: 2%; left: 6%; line-height: 1; }
+.cell .sprite { position: absolute; inset: 7%; width: 86%; height: 86%; filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.35)); }
+.legend-sprite { width: 1.2rem; height: 1.2rem; }
 .cell .mark { color: #a22; font-weight: 700; font-size: 1.3em; }
 .cell .chip { width: 62%; height: 62%; font-size: 0.9em; }
 .notice { min-height: 1.4rem; margin: 0.6rem 0 0; font-weight: 600; color: var(--accent); }

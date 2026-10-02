@@ -1,5 +1,5 @@
 import type { Pos, Puzzle } from '../engine/types'
-import { suspectColor } from './glyphs'
+import { suspectColor } from './palette'
 
 interface SuspectTrayProps {
   puzzle: Puzzle

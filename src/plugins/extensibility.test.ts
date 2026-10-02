@@ -1,10 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest'
 import { evaluate, renderClue } from '../engine/clues'
 import { tiny } from '../engine/fixtures'
-import type { Plugin } from '../engine/plugin'
+import type { Plugin, SpriteDef } from '../engine/plugin'
 import { registry } from '../engine/registry'
 import { countSolutions } from '../engine/solver'
 import { generate } from './classic/generator'
+
+const SPRITE: SpriteDef = { shapes: [{ kind: 'rect', x: 10, y: 10, w: 80, h: 80, fill: '#444' }] }
 
 const NOIR_ROOMS = ['Alley', 'Bar', 'Docks', 'Office', 'Casino', 'Hotel', 'Rooftop', 'Subway']
 const NOIR_SUSPECTS = ['Sam', 'Vera', 'Lou', 'Mae', 'Hank', 'Dot', 'Ray', 'Ida']
@@ -19,8 +21,8 @@ const noir: Plugin = {
       rooms: NOIR_ROOMS,
       suspects: NOIR_SUSPECTS,
       objects: {
-        chair: { noun: 'a barstool', standingOn: 'perched on a barstool', glyph: 'S', weight: 0.1 },
-        shelf: { noun: 'a safe', standingOn: 'on a safe', glyph: 'X', weight: 0.05 },
+        chair: { noun: 'a barstool', standingOn: 'perched on a barstool', sprite: SPRITE, weight: 0.1 },
+        shelf: { noun: 'a safe', standingOn: 'on a safe', sprite: SPRITE, weight: 0.05 },
       },
     })
     api.addClueType({

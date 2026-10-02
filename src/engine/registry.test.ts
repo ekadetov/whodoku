@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import type { Plugin, ThemeDef } from './plugin'
+import type { Plugin, SpriteDef, ThemeDef } from './plugin'
 import { createRegistry } from './registry'
+
+const SPRITE: SpriteDef = { shapes: [{ kind: 'rect', x: 0, y: 0, w: 10, h: 10 }] }
 
 const theme = (overrides: Partial<ThemeDef> = {}): ThemeDef => ({
   id: 't',
   rooms: ['A', 'B'],
   suspects: ['X', 'Y'],
   objects: {
-    seat: { noun: 'a seat', standingOn: 'on a seat', glyph: 's', weight: 0.1 },
-    wall: { noun: 'a wall', standingOn: 'on a wall', glyph: 'w', weight: 0.1 },
+    seat: { noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+    wall: { noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
   },
   ...overrides,
 })
@@ -129,24 +131,26 @@ describe('theme validation', () => {
   })
 
   it('rejects an object that is not a registered kind', () => {
-    const objects = { ghost: { noun: 'a ghost', standingOn: 'on a ghost', glyph: 'g', weight: 0.1 } }
+    const objects = { ghost: { noun: 'a ghost', standingOn: 'on a ghost', sprite: SPRITE, weight: 0.1 } }
     expect(() => createRegistry().register(withTheme({ objects }))).toThrow('"ghost" is not a registered object kind')
   })
 
-  it('rejects an object without a noun or glyph', () => {
+  it('rejects an object without a noun or a sprite', () => {
     const objects = {
-      seat: { noun: '', standingOn: 'on a seat', glyph: 's', weight: 0.1 },
-      wall: { noun: 'a wall', standingOn: 'on a wall', glyph: 'w', weight: 0.1 },
+      seat: { noun: '', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+      wall: { noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
     }
-    expect(() => createRegistry().register(withTheme({ objects }))).toThrow('needs a noun, standingOn and glyph')
+    expect(() => createRegistry().register(withTheme({ objects }))).toThrow('needs a noun, standingOn and a sprite')
+    const blank = { ...objects, seat: { ...objects.seat, noun: 'a seat', sprite: { shapes: [] } } }
+    expect(() => createRegistry().register(withTheme({ objects: blank }))).toThrow('needs a noun, standingOn and a sprite')
   })
 
   it('needs both a blocking and an occupiable object that can spawn', () => {
-    const onlySeat = { seat: { noun: 'a seat', standingOn: 'on a seat', glyph: 's', weight: 0.1 } }
+    const onlySeat = { seat: { noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 } }
     expect(() => createRegistry().register(withTheme({ objects: onlySeat }))).toThrow('at least one blocking object')
     const wallNeverSpawns = {
-      seat: { noun: 'a seat', standingOn: 'on a seat', glyph: 's', weight: 0.1 },
-      wall: { noun: 'a wall', standingOn: 'on a wall', glyph: 'w', weight: 0 },
+      seat: { noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+      wall: { noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0 },
     }
     expect(() => createRegistry().register(withTheme({ objects: wallNeverSpawns }))).toThrow('at least one blocking object')
   })

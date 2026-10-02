@@ -20,6 +20,12 @@ describe('classic plugin', () => {
     )
   })
 
+  it('draws every themed object with at least one shape', () => {
+    for (const object of Object.values(registry.theme('classic').objects)) {
+      expect(object.sprite.shapes.length).toBeGreaterThan(0)
+    }
+  })
+
   it('registers every clue type and the victim rule', () => {
     expect(registry.clueTypes()).toHaveLength(14)
     expect(registry.rules().map((r) => r.id)).toEqual(['victim-killer'])

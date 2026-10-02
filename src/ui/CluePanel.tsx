@@ -1,6 +1,6 @@
 import { renderClue } from '../engine/clues'
 import type { Puzzle } from '../engine/types'
-import { suspectColor } from './glyphs'
+import { suspectColor } from './palette'
 
 interface CluePanelProps {
   puzzle: Puzzle

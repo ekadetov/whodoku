@@ -1,4 +1,5 @@
 import type { ThemeDef } from '../../engine/plugin'
+import { SPRITES } from './sprites'
 
 export const classicTheme: ThemeDef = {
   id: 'classic',
@@ -39,14 +40,14 @@ export const classicTheme: ThemeDef = {
     'Pia',
   ],
   objects: {
-    chair: { noun: 'a chair', standingOn: 'sitting on a chair', glyph: '\u{1FA91}', weight: 0.1 },
-    rug: { noun: 'a rug', standingOn: 'on a rug', glyph: '\u{25A6}', weight: 0.06 },
-    water: { noun: 'the water', standingOn: 'in the water', glyph: '\u{1F4A7}', weight: 0.04 },
-    table: { noun: 'a table', standingOn: 'on a table', glyph: '\u{1F7EB}', weight: 0.05 },
-    shelf: { noun: 'a shelf', standingOn: 'on a shelf', glyph: '\u{1F4DA}', weight: 0.03 },
-    plant: { noun: 'a plant', standingOn: 'on a plant', glyph: '\u{1FAB4}', weight: 0.03 },
-    rock: { noun: 'a rock', standingOn: 'on a rock', glyph: '\u{1FAA8}', weight: 0.02 },
-    tree: { noun: 'a tree', standingOn: 'on a tree', glyph: '\u{1F333}', weight: 0.02 },
-    tv: { noun: 'a TV', standingOn: 'on a TV', glyph: '\u{1F4FA}', weight: 0.01 },
+    chair: { noun: 'a chair', standingOn: 'sitting on a chair', sprite: SPRITES.chair, weight: 0.1 },
+    rug: { noun: 'a rug', standingOn: 'on a rug', sprite: SPRITES.rug, weight: 0.06 },
+    water: { noun: 'the water', standingOn: 'in the water', sprite: SPRITES.water, weight: 0.04 },
+    table: { noun: 'a table', standingOn: 'on a table', sprite: SPRITES.table, weight: 0.05 },
+    shelf: { noun: 'a shelf', standingOn: 'on a shelf', sprite: SPRITES.shelf, weight: 0.03 },
+    plant: { noun: 'a plant', standingOn: 'on a plant', sprite: SPRITES.plant, weight: 0.03 },
+    rock: { noun: 'a rock', standingOn: 'on a rock', sprite: SPRITES.rock, weight: 0.02 },
+    tree: { noun: 'a tree', standingOn: 'on a tree', sprite: SPRITES.tree, weight: 0.02 },
+    tv: { noun: 'a TV', standingOn: 'on a TV', sprite: SPRITES.tv, weight: 0.01 },
   },
 }

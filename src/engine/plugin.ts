@@ -12,10 +12,26 @@ export interface ObjectKindDef {
   footprint?: readonly Pos[]
 }
 
+interface Paint {
+  fill?: string
+  stroke?: string
+  sw?: number
+}
+
+/** Drawing instructions on a 100 x 100 canvas. Plain data, so a theme can be shipped as JSON. */
+export type SpriteShape =
+  | ({ kind: 'rect'; x: number; y: number; w: number; h: number; rx?: number } & Paint)
+  | ({ kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number } & Paint)
+  | ({ kind: 'path'; d: string } & Paint)
+
+export interface SpriteDef {
+  shapes: readonly SpriteShape[]
+}
+
 export interface ThemeObject {
   noun: string
   standingOn: string
-  glyph: string
+  sprite: SpriteDef
   weight: number
 }
 

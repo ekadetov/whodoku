@@ -63,7 +63,9 @@ export function validateTheme(theme: ThemeDef, kinds: ReadonlyMap<string, Object
   const entries = Object.entries(theme.objects)
   for (const [id, object] of entries) {
     if (!kinds.has(id)) fail(`object "${id}" is not a registered object kind`)
-    if (!object.noun || !object.standingOn || !object.glyph) fail(`object "${id}" needs a noun, standingOn and glyph`)
+    if (!object.noun || !object.standingOn || object.sprite.shapes.length === 0) {
+      fail(`object "${id}" needs a noun, standingOn and a sprite`)
+    }
   }
   const spawning = entries.filter(([, object]) => object.weight > 0).map(([id]) => kinds.get(id)!)
   if (!spawning.some((kind) => kind.blocking)) fail('needs at least one blocking object')

@@ -65,8 +65,8 @@ describe('generateLayout', () => {
       rooms: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7'],
       suspects: ['S'],
       objects: {
-        chair: { noun: 'a chair', standingOn: 'on a chair', glyph: 'c', weight: 0.5 },
-        table: { noun: 'a table', standingOn: 'on a table', glyph: 't', weight: 0.4 },
+        chair: { noun: 'a chair', standingOn: 'on a chair', sprite: { shapes: [{ kind: 'rect', x: 0, y: 0, w: 10, h: 10 }] }, weight: 0.5 },
+        table: { noun: 'a table', standingOn: 'on a table', sprite: { shapes: [{ kind: 'rect', x: 0, y: 0, w: 10, h: 10 }] }, weight: 0.4 },
       },
     }
     const layout = generateLayout(mulberry32(3), 6, 6, theme)
