@@ -186,7 +186,7 @@ function attemptPuzzle(rng: Rng, config: TierConfig, theme: ThemeDef): Puzzle | 
     rooms: layout.rooms,
     suspects: shuffle(rng, theme.suspects)
       .slice(0, size)
-      .map((name) => ({ name })),
+      .map((suspect) => ({ ...suspect })),
     victim: pick(rng, eligible),
     clues: [],
     themeId: theme.id,

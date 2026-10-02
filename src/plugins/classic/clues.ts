@@ -60,6 +60,12 @@ const bare =
 const text = (value: string): ClueText => ({ kind: 'text', text: value })
 const relation = (value: string, term: string): ClueText => ({ kind: 'relation', text: value, term })
 const person = (puzzle: Puzzle, suspect: number): ClueText => ({ kind: 'person', text: nameOf(puzzle, suspect), suspect })
+
+const PRONOUNS = { she: 'She', he: 'He', they: 'They' } as const
+
+/** The card already shows the name, so a clue's subject is a plain pronoun (not a person piece). */
+const who = (puzzle: Puzzle, suspect: number): ClueText => text(PRONOUNS[puzzle.suspects[suspect].pronoun])
+const be = (puzzle: Puzzle, suspect: number): string => (puzzle.suspects[suspect].pronoun === 'they' ? 'were' : 'was')
 const roomText = (puzzle: Puzzle, room: number): ClueText => ({ kind: 'room', text: puzzle.rooms[room], room })
 
 const ARTICLE = /^(an?|the) /
@@ -88,8 +94,8 @@ const inRoom: ClueTypeDef = {
   scope: 'unary',
   evaluate: (clue: RoomClue, puzzle, placement) => roomOf(puzzle, placement[clue.suspect]) === clue.room,
   parts: (clue: RoomClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was in the '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} in the `),
     roomText(puzzle, clue.room),
     text('.'),
   ],
@@ -102,8 +108,8 @@ const notInRoom: ClueTypeDef = {
   evaluate: (clue: RoomClue, puzzle, placement) => roomOf(puzzle, placement[clue.suspect]) !== clue.room,
   terms: ['not'],
   parts: (clue: RoomClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation('not', 'not'),
     text(' in the '),
     roomText(puzzle, clue.room),
@@ -117,8 +123,8 @@ const onObject: ClueTypeDef = {
   scope: 'unary',
   evaluate: (clue: KindClue, puzzle, placement) => objectAt(puzzle, placement[clue.suspect]) === clue.kind,
   parts: (clue: KindClue, puzzle, theme) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     ...standingParts(theme, clue.kind),
     text('.'),
   ],
@@ -131,8 +137,8 @@ const notOnObject: ClueTypeDef = {
   evaluate: (clue: KindClue, puzzle, placement) => objectAt(puzzle, placement[clue.suspect]) !== clue.kind,
   terms: ['not'],
   parts: (clue: KindClue, puzzle, theme) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation('not', 'not'),
     text(' '),
     ...standingParts(theme, clue.kind),
@@ -147,8 +153,8 @@ const besideObject: ClueTypeDef = {
   evaluate: (clue: KindClue, puzzle, placement) => isBesideObject(puzzle, placement[clue.suspect], clue.kind),
   terms: ['beside'],
   parts: (clue: KindClue, puzzle, theme) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation('beside', 'beside'),
     text(' '),
     ...nounParts(theme, clue.kind),
@@ -163,8 +169,8 @@ const notBesideObject: ClueTypeDef = {
   evaluate: (clue: KindClue, puzzle, placement) => !isBesideObject(puzzle, placement[clue.suspect], clue.kind),
   terms: ['not', 'beside'],
   parts: (clue: KindClue, puzzle, theme) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation('not', 'not'),
     text(' '),
     relation('beside', 'beside'),
@@ -180,8 +186,8 @@ const inColumn: ClueTypeDef = {
   scope: 'unary',
   evaluate: (clue: ColumnClue, _puzzle, placement) => placement[clue.suspect].c === clue.col,
   parts: (clue: ColumnClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was in '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} in `),
     { kind: 'column', text: `column ${clue.col + 1}`, col: clue.col },
     text('.'),
   ],
@@ -193,8 +199,8 @@ const inRow: ClueTypeDef = {
   scope: 'unary',
   evaluate: (clue: RowClue, _puzzle, placement) => placement[clue.suspect].r === clue.row,
   parts: (clue: RowClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was in '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} in `),
     { kind: 'row', text: `row ${clue.row + 1}`, row: clue.row },
     text('.'),
   ],
@@ -207,8 +213,8 @@ const northOf: ClueTypeDef = {
   evaluate: (clue: OffsetClue, _puzzle, placement) => placement[clue.suspect].r === placement[clue.other].r - clue.delta,
   terms: ['north of'],
   parts: (clue: OffsetClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation(`${plural(clue.delta, 'row')} north of`, 'north of'),
     text(' '),
     person(puzzle, clue.other),
@@ -228,8 +234,8 @@ const westOf: ClueTypeDef = {
   evaluate: (clue: OffsetClue, _puzzle, placement) => placement[clue.suspect].c === placement[clue.other].c - clue.delta,
   terms: ['west of'],
   parts: (clue: OffsetClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation(`${plural(clue.delta, 'column')} west of`, 'west of'),
     text(' '),
     person(puzzle, clue.other),
@@ -250,8 +256,8 @@ const sameRoomAs: ClueTypeDef = {
     roomOf(puzzle, placement[clue.suspect]) === roomOf(puzzle, placement[clue.other]),
   terms: ['same room'],
   parts: (clue: OtherClue, puzzle) => [
-    person(puzzle, clue.suspect),
-    text(' was in '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} in `),
     relation('the same room as', 'same room'),
     text(' '),
     person(puzzle, clue.other),
@@ -267,7 +273,12 @@ const aloneInRoom: ClueTypeDef = {
   evaluate: (clue, puzzle, placement) =>
     suspectsInRoom(puzzle, placement, roomOf(puzzle, placement[clue.suspect])) === 1,
   terms: ['alone'],
-  parts: (clue, puzzle) => [person(puzzle, clue.suspect), text(' was '), relation('alone', 'alone'), text('.')],
+  parts: (clue, puzzle) => [
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
+    relation('alone', 'alone'),
+    text('.'),
+  ],
   candidates: bare('aloneInRoom'),
   prune: (clue, puzzle, assigned) => (placedWithSuspect(puzzle, assigned, clue.suspect) ?? 0) <= 1,
 }
@@ -277,18 +288,20 @@ const withOneOther: ClueTypeDef = {
   scope: 'global',
   evaluate: (clue, puzzle, placement) =>
     suspectsInRoom(puzzle, placement, roomOf(puzzle, placement[clue.suspect])) === 2,
-  terms: ['alone with the killer', 'exactly one other'],
+  terms: ['victim', 'alone with the murderer', 'exactly one other'],
   parts: (clue, puzzle) =>
     clue.suspect === puzzle.victim
       ? [
-          person(puzzle, clue.suspect),
-          text(' was '),
-          relation('alone with the killer', 'alone with the killer'),
+          relation('The Victim.', 'victim'),
+          text(' '),
+          who(puzzle, clue.suspect),
+          text(` ${be(puzzle, clue.suspect)} `),
+          relation('alone with the murderer', 'alone with the murderer'),
           text('.'),
         ]
       : [
-          person(puzzle, clue.suspect),
-          text(' was with '),
+          who(puzzle, clue.suspect),
+          text(` ${be(puzzle, clue.suspect)} with `),
           relation('exactly one other person', 'exactly one other'),
           text('.'),
         ],
@@ -311,8 +324,8 @@ const onlyOnObject: ClueTypeDef = {
     placement.filter((p) => objectAt(puzzle, p) === clue.kind).length === 1,
   terms: ['only'],
   parts: (clue: KindClue, puzzle, theme) => [
-    person(puzzle, clue.suspect),
-    text(' was '),
+    who(puzzle, clue.suspect),
+    text(` ${be(puzzle, clue.suspect)} `),
     relation('the only person', 'only'),
     text(' '),
     ...standingParts(theme, clue.kind),

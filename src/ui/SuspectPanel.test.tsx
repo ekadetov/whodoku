@@ -53,9 +53,9 @@ describe('SuspectPanel cards', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(4)
     expect(screen.getByTestId('suspect-1')).toHaveTextContent('Bob')
     expect(screen.getByTestId('suspect-1').querySelector('.portrait svg')).not.toBeNull()
-    expect(screen.getByTestId('clue-1')).toHaveTextContent('Bob was sitting on a chair.')
+    expect(screen.getByTestId('clue-1')).toHaveTextContent('He was sitting on a chair.')
     expect(screen.getByTestId('suspect-0')).toHaveTextContent('(victim)')
-    expect(screen.getByTestId('clue-0')).toHaveTextContent('Ann was alone with the killer.')
+    expect(screen.getByTestId('clue-0')).toHaveTextContent('The Victim. She was alone with the murderer.')
   })
 
   it('selects a suspect on click and deselects on a second click', () => {
@@ -126,12 +126,12 @@ describe('SuspectPanel hints', () => {
     setup()
     const bold = (id: string) => [...screen.getByTestId(id).querySelectorAll('b')].map((b) => b.textContent)
     expect(bold('clue-1')).toEqual(['chair'])
-    expect(bold('clue-0')).toEqual(['alone with the killer'])
+    expect(bold('clue-0')).toEqual(['The Victim.', 'alone with the murderer'])
   })
 
   it('explains relation words with the theme glossary', () => {
     setup()
-    const term = screen.getByTestId('clue-0').querySelector('b.term')!
+    const term = [...screen.getByTestId('clue-0').querySelectorAll('b.term')].find((b) => b.textContent === 'alone with the murderer')!
     expect(term).toHaveAttribute('data-tip', expect.stringContaining('only two people in the room'))
   })
 

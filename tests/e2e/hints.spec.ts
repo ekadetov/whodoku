@@ -34,7 +34,7 @@ test('a selected card keeps its hints and explains cells as you hover them', asy
   await expect(page.locator('.cell.hint')).toHaveCount(expected)
 
   await page.locator('[data-testid^="cell-"]:not([aria-disabled="true"])').first().hover()
-  await expect(page.locator('.tip.clue')).toContainText(`${puzzle.suspects[suspect].name} was`)
+  await expect(page.locator('.tip.clue')).toContainText(/^(She|He|They) (was|were)/)
 })
 
 test('relation words in clues carry a glossary entry', async ({ page }) => {

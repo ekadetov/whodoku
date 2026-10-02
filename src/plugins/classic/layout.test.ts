@@ -63,7 +63,7 @@ describe('generateLayout', () => {
     const theme: ThemeDef = {
       id: 'mini',
       rooms: ['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7'],
-      suspects: ['S'],
+      suspects: [{ name: 'S', pronoun: 'they' }],
       glossary: {},
       objects: {
         chair: { label: 'Chair', noun: 'a chair', standingOn: 'on a chair', sprite: { shapes: [{ kind: 'rect', x: 0, y: 0, w: 10, h: 10 }] }, weight: 0.5 },

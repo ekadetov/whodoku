@@ -1,4 +1,4 @@
-import type { Clue, Placement, Pos, Puzzle } from './types'
+import type { Clue, Placement, Pos, Puzzle, Suspect } from './types'
 
 export type ClueScope = 'unary' | 'binary' | 'global'
 
@@ -39,7 +39,7 @@ export interface ThemeObject {
 export interface ThemeDef {
   id: string
   rooms: readonly string[]
-  suspects: readonly string[]
+  suspects: readonly Suspect[]
   objects: Readonly<Record<string, ThemeObject>>
   /** One-line explanations for the relation words clues use, keyed by `ClueText` term. */
   glossary: Readonly<Record<string, string>>

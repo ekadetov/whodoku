@@ -12,7 +12,12 @@ export const tiny: Puzzle = {
     [o(2), o(2), o(3), o(3, 'water')],
   ],
   rooms: ['Hall', 'Study', 'Kitchen', 'Garden'],
-  suspects: [{ name: 'Ann' }, { name: 'Bob' }, { name: 'Cy' }, { name: 'Di' }],
+  suspects: [
+    { name: 'Ann', pronoun: 'she' },
+    { name: 'Bob', pronoun: 'he' },
+    { name: 'Cy', pronoun: 'they' },
+    { name: 'Di', pronoun: 'she' },
+  ],
   victim: 0,
   clues: [
     { type: 'withOneOther', suspect: 0 },

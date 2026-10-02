@@ -61,34 +61,34 @@ describe('renderClue', () => {
   const text = (clue: Clue) => renderClue(clue, tiny)
 
   it('renders room clues', () => {
-    expect(text({ type: 'inRoom', suspect: BOB, room: 2 })).toBe('Bob was in the Kitchen.')
-    expect(text({ type: 'notInRoom', suspect: BOB, room: 2 })).toBe('Bob was not in the Kitchen.')
-    expect(text({ type: 'sameRoomAs', suspect: ANN, other: BOB })).toBe('Ann was in the same room as Bob.')
+    expect(text({ type: 'inRoom', suspect: BOB, room: 2 })).toBe('He was in the Kitchen.')
+    expect(text({ type: 'notInRoom', suspect: BOB, room: 2 })).toBe('He was not in the Kitchen.')
+    expect(text({ type: 'sameRoomAs', suspect: ANN, other: BOB })).toBe('She was in the same room as Bob.')
   })
 
   it('renders object clues', () => {
-    expect(text({ type: 'onObject', suspect: BOB, kind: 'chair' })).toBe('Bob was sitting on a chair.')
-    expect(text({ type: 'notOnObject', suspect: BOB, kind: 'rug' })).toBe('Bob was not on a rug.')
-    expect(text({ type: 'onObject', suspect: DI, kind: 'water' })).toBe('Di was in the water.')
-    expect(text({ type: 'besideObject', suspect: ANN, kind: 'shelf' })).toBe('Ann was beside a shelf.')
-    expect(text({ type: 'notBesideObject', suspect: ANN, kind: 'water' })).toBe('Ann was not beside the water.')
+    expect(text({ type: 'onObject', suspect: BOB, kind: 'chair' })).toBe('He was sitting on a chair.')
+    expect(text({ type: 'notOnObject', suspect: BOB, kind: 'rug' })).toBe('He was not on a rug.')
+    expect(text({ type: 'onObject', suspect: DI, kind: 'water' })).toBe('She was in the water.')
+    expect(text({ type: 'besideObject', suspect: ANN, kind: 'shelf' })).toBe('She was beside a shelf.')
+    expect(text({ type: 'notBesideObject', suspect: ANN, kind: 'water' })).toBe('She was not beside the water.')
     expect(text({ type: 'onlyOnObject', suspect: BOB, kind: 'chair' })).toBe(
-      'Bob was the only person sitting on a chair.',
+      'He was the only person sitting on a chair.',
     )
   })
 
   it('renders position clues with 1-based indices', () => {
-    expect(text({ type: 'inColumn', suspect: ANN, col: 1 })).toBe('Ann was in column 2.')
-    expect(text({ type: 'inRow', suspect: ANN, row: 0 })).toBe('Ann was in row 1.')
-    expect(text({ type: 'northOf', suspect: ANN, other: BOB, delta: 1 })).toBe('Ann was one row north of Bob.')
-    expect(text({ type: 'northOf', suspect: ANN, other: CY, delta: 2 })).toBe('Ann was two rows north of Cy.')
-    expect(text({ type: 'westOf', suspect: BOB, other: ANN, delta: 3 })).toBe('Bob was three columns west of Ann.')
+    expect(text({ type: 'inColumn', suspect: ANN, col: 1 })).toBe('She was in column 2.')
+    expect(text({ type: 'inRow', suspect: ANN, row: 0 })).toBe('She was in row 1.')
+    expect(text({ type: 'northOf', suspect: ANN, other: BOB, delta: 1 })).toBe('She was one row north of Bob.')
+    expect(text({ type: 'northOf', suspect: ANN, other: CY, delta: 2 })).toBe('She was two rows north of Cy.')
+    expect(text({ type: 'westOf', suspect: BOB, other: ANN, delta: 3 })).toBe('He was three columns west of Ann.')
   })
 
   it('renders company clues, special-casing the victim', () => {
-    expect(text({ type: 'aloneInRoom', suspect: BOB })).toBe('Bob was alone.')
-    expect(text({ type: 'withOneOther', suspect: ANN })).toBe('Ann was alone with the killer.')
-    expect(text({ type: 'withOneOther', suspect: BOB })).toBe('Bob was with exactly one other person.')
+    expect(text({ type: 'aloneInRoom', suspect: BOB })).toBe('He was alone.')
+    expect(text({ type: 'withOneOther', suspect: ANN })).toBe('The Victim. She was alone with the murderer.')
+    expect(text({ type: 'withOneOther', suspect: BOB })).toBe('He was with exactly one other person.')
   })
 })
 

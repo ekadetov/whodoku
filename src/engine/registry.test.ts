@@ -7,7 +7,10 @@ const SPRITE: SpriteDef = { shapes: [{ kind: 'rect', x: 0, y: 0, w: 10, h: 10 }]
 const theme = (overrides: Partial<ThemeDef> = {}): ThemeDef => ({
   id: 't',
   rooms: ['A', 'B'],
-  suspects: ['X', 'Y'],
+  suspects: [
+    { name: 'X', pronoun: 'she' },
+    { name: 'Y', pronoun: 'he' },
+  ],
   glossary: {},
   objects: {
     seat: { label: 'Seat', noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },

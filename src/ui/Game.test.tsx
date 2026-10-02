@@ -275,7 +275,7 @@ describe('Game hints', () => {
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('suspect-1'))
     fireEvent.pointerEnter(screen.getByTestId('cell-2-3'), { pointerType: 'mouse' })
-    expect(screen.getByTestId('cell-2-3').querySelector('.tip.clue')).toHaveTextContent('Bob was sitting on a chair.')
+    expect(screen.getByTestId('cell-2-3').querySelector('.tip.clue')).toHaveTextContent('He was sitting on a chair.')
     expect(screen.getByTestId('cell-2-3').querySelector('.tip:not(.clue)')).toHaveTextContent('Garden')
   })
 

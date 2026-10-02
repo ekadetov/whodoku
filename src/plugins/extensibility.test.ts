@@ -20,7 +20,7 @@ const noir: Plugin = {
     api.addTheme({
       id: 'noir',
       rooms: NOIR_ROOMS,
-      suspects: NOIR_SUSPECTS,
+      suspects: NOIR_SUSPECTS.map((name, i) => ({ name, pronoun: i % 2 ? ('he' as const) : ('she' as const) })),
       glossary: classicTheme.glossary,
       objects: {
         chair: { label: 'Barstool', noun: 'a barstool', standingOn: 'perched on a barstool', sprite: SPRITE, weight: 0.1 },
@@ -52,7 +52,7 @@ describe('extending the engine without touching the kernel', () => {
 
   it('words clues with the theme nouns', () => {
     const puzzle = { ...tiny, themeId: 'noir' }
-    expect(renderClue({ type: 'onObject', suspect: 1, kind: 'chair' }, puzzle)).toBe('Bob was perched on a barstool.')
+    expect(renderClue({ type: 'onObject', suspect: 1, kind: 'chair' }, puzzle)).toBe('He was perched on a barstool.')
   })
 
   it('lets a plugin add a clue type the solver understands', () => {

@@ -57,7 +57,7 @@ export function validateTheme(theme: ThemeDef, kinds: ReadonlyMap<string, Object
   if (theme.rooms.length === 0 || new Set(theme.rooms).size !== theme.rooms.length) {
     fail('rooms must be non-empty and unique')
   }
-  if (theme.suspects.length === 0 || new Set(theme.suspects).size !== theme.suspects.length) {
+  if (theme.suspects.length === 0 || new Set(theme.suspects.map((s) => s.name)).size !== theme.suspects.length) {
     fail('suspects must be non-empty and unique')
   }
   const entries = Object.entries(theme.objects)

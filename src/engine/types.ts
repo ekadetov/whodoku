@@ -12,8 +12,22 @@ export interface Cell {
   object: ObjectKind | null
 }
 
+export type Pronoun = 'she' | 'he' | 'they'
+
+/** Pins any part of a generated portrait; whatever is left out is chosen from the name. */
+export interface PortraitLook {
+  hairStyle?: string
+  hairColor?: string
+  skin?: string
+  facialHair?: string
+  shirt?: string
+  glasses?: boolean
+}
+
 export interface Suspect {
   name: string
+  pronoun: Pronoun
+  look?: PortraitLook
 }
 
 export type Placement = Pos[]
