@@ -66,6 +66,7 @@ export function validateTheme(theme: ThemeDef, kinds: ReadonlyMap<string, Object
     if (!object.noun || !object.standingOn || object.sprite.shapes.length === 0) {
       fail(`object "${id}" needs a noun, standingOn and a sprite`)
     }
+    if (!object.label) fail(`object "${id}" needs a label`)
   }
   const spawning = entries.filter(([, object]) => object.weight > 0).map(([id]) => kinds.get(id)!)
   if (!spawning.some((kind) => kind.blocking)) fail('needs at least one blocking object')
@@ -109,6 +110,16 @@ export function createRegistry(): Registry {
     }
     plugin.register(api)
     for (const theme of staged.themes.values()) validateTheme(theme, staged.objectKinds)
+    for (const theme of staged.themes.values()) {
+      for (const clue of staged.clueTypes.values()) {
+        const missing = (clue.terms ?? []).filter((term) => !theme.glossary[term])
+        if (missing.length > 0) {
+          throw new Error(
+            `Invalid theme "${theme.id}": missing glossary entries for clue type "${clue.id}": ${missing.join(', ')}`,
+          )
+        }
+      }
+    }
     return staged
   }
 

@@ -1,3 +1,4 @@
+import type { ClueText } from './plugin'
 import { registry } from './registry'
 import { isOccupiable } from './types'
 import type { Clue, Placement, Puzzle } from './types'
@@ -8,8 +9,14 @@ export function evaluate(clue: Clue, puzzle: Puzzle, placement: Placement): bool
   return registry.clueType(clue.type).evaluate(clue, puzzle, placement)
 }
 
+export function clueParts(clue: Clue, puzzle: Puzzle): ClueText[] {
+  return registry.clueType(clue.type).parts(clue, puzzle, registry.theme(puzzle.themeId))
+}
+
 export function renderClue(clue: Clue, puzzle: Puzzle): string {
-  return registry.clueType(clue.type).render(clue, puzzle, registry.theme(puzzle.themeId))
+  return clueParts(clue, puzzle)
+    .map((part) => part.text)
+    .join('')
 }
 
 export function isLegalPlacement(puzzle: Puzzle, placement: Placement): boolean {

@@ -8,9 +8,10 @@ const theme = (overrides: Partial<ThemeDef> = {}): ThemeDef => ({
   id: 't',
   rooms: ['A', 'B'],
   suspects: ['X', 'Y'],
+  glossary: {},
   objects: {
-    seat: { noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
-    wall: { noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
+    seat: { label: 'Seat', noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+    wall: { label: 'Wall', noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
   },
   ...overrides,
 })
@@ -83,7 +84,7 @@ describe('registry', () => {
           id: 'c',
           scope: 'weird' as never,
           evaluate: () => true,
-          render: () => '',
+          parts: () => [],
         }),
     })
     expect(() => registry.register(badScope)).toThrow('invalid scope')
@@ -131,14 +132,14 @@ describe('theme validation', () => {
   })
 
   it('rejects an object that is not a registered kind', () => {
-    const objects = { ghost: { noun: 'a ghost', standingOn: 'on a ghost', sprite: SPRITE, weight: 0.1 } }
+    const objects = { ghost: { label: 'Thing', noun: 'a ghost', standingOn: 'on a ghost', sprite: SPRITE, weight: 0.1 } }
     expect(() => createRegistry().register(withTheme({ objects }))).toThrow('"ghost" is not a registered object kind')
   })
 
   it('rejects an object without a noun or a sprite', () => {
     const objects = {
-      seat: { noun: '', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
-      wall: { noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
+      seat: { label: 'Thing', noun: '', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+      wall: { label: 'Thing', noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
     }
     expect(() => createRegistry().register(withTheme({ objects }))).toThrow('needs a noun, standingOn and a sprite')
     const blank = { ...objects, seat: { ...objects.seat, noun: 'a seat', sprite: { shapes: [] } } }
@@ -146,12 +147,58 @@ describe('theme validation', () => {
   })
 
   it('needs both a blocking and an occupiable object that can spawn', () => {
-    const onlySeat = { seat: { noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 } }
+    const onlySeat = { seat: { label: 'Thing', noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 } }
     expect(() => createRegistry().register(withTheme({ objects: onlySeat }))).toThrow('at least one blocking object')
     const wallNeverSpawns = {
-      seat: { noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
-      wall: { noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0 },
+      seat: { label: 'Thing', noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+      wall: { label: 'Thing', noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0 },
     }
     expect(() => createRegistry().register(withTheme({ objects: wallNeverSpawns }))).toThrow('at least one blocking object')
+  })
+
+  it('needs a label on every object', () => {
+    const objects = {
+      seat: { label: '', noun: 'a seat', standingOn: 'on a seat', sprite: SPRITE, weight: 0.1 },
+      wall: { label: 'Wall', noun: 'a wall', standingOn: 'on a wall', sprite: SPRITE, weight: 0.1 },
+    }
+    expect(() => createRegistry().register(withTheme({ objects }))).toThrow('needs a label')
+  })
+})
+
+describe('glossary coverage', () => {
+  const withClue = (terms: string[]): Plugin => ({
+    id: 'terms',
+    version: '1.0.0',
+    register(api) {
+      api.addObjectKind({ id: 'seat', blocking: false })
+      api.addObjectKind({ id: 'wall', blocking: true })
+      api.addClueType({ id: 'near', scope: 'unary', evaluate: () => true, parts: () => [], terms })
+    },
+  })
+
+  it('rejects a theme that does not explain a clue term', () => {
+    const registry = createRegistry()
+    registry.register(withClue(['beside']))
+    const lacking: Plugin = { id: 'lacking', version: '1.0.0', register: (api) => api.addTheme(theme()) }
+    expect(() => registry.register(lacking)).toThrow('missing glossary entries for clue type "near": beside')
+  })
+
+  it('rejects a clue type whose term an existing theme does not explain', () => {
+    const registry = createRegistry()
+    registry.register(base())
+    const clueOnly: Plugin = {
+      id: 'clue-only',
+      version: '1.0.0',
+      register: (api) => api.addClueType({ id: 'near', scope: 'unary', evaluate: () => true, parts: () => [], terms: ['beside'] }),
+    }
+    expect(() => registry.register(clueOnly)).toThrow('missing glossary entries for clue type "near": beside')
+  })
+
+  it('accepts themes that explain every term', () => {
+    const registry = createRegistry()
+    registry.register(withClue(['beside']))
+    const explained: Plugin = { id: 'explained', version: '1.0.0', register: (api) => api.addTheme(theme({ glossary: { beside: 'next to' } })) }
+    registry.register(explained)
+    expect(registry.theme('t').glossary.beside).toBe('next to')
   })
 })

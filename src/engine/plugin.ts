@@ -29,6 +29,7 @@ export interface SpriteDef {
 }
 
 export interface ThemeObject {
+  label: string
   noun: string
   standingOn: string
   sprite: SpriteDef
@@ -40,13 +41,27 @@ export interface ThemeDef {
   rooms: readonly string[]
   suspects: readonly string[]
   objects: Readonly<Record<string, ThemeObject>>
+  /** One-line explanations for the relation words clues use, keyed by `ClueText` term. */
+  glossary: Readonly<Record<string, string>>
 }
+
+/** A clue sentence as pieces, so the UI can bold words, explain them and highlight what they name. */
+export type ClueText =
+  | { kind: 'text'; text: string }
+  | { kind: 'relation'; text: string; term: string }
+  | { kind: 'object'; text: string; object: string }
+  | { kind: 'room'; text: string; room: number }
+  | { kind: 'person'; text: string; suspect: number }
+  | { kind: 'column'; text: string; col: number }
+  | { kind: 'row'; text: string; row: number }
 
 export interface ClueTypeDef {
   id: string
   scope: ClueScope
   evaluate(clue: Clue, puzzle: Puzzle, placement: Placement): boolean
-  render(clue: Clue, puzzle: Puzzle, theme: ThemeDef): string
+  parts(clue: Clue, puzzle: Puzzle, theme: ThemeDef): ClueText[]
+  /** Glossary terms the parts can contain; every registered theme must explain them. */
+  terms?: readonly string[]
   candidates?(puzzle: Puzzle, placement: Placement, suspect: number): Clue[]
   prune?(clue: Clue, puzzle: Puzzle, assigned: PartialPlacement): boolean
   feasible?(clue: Clue, puzzle: Puzzle, assigned: PartialPlacement, reachableByRoom: number[]): boolean

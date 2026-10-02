@@ -5,6 +5,7 @@ import type { Plugin, SpriteDef } from '../engine/plugin'
 import { registry } from '../engine/registry'
 import { countSolutions } from '../engine/solver'
 import { generate } from './classic/generator'
+import { classicTheme } from './classic/theme'
 
 const SPRITE: SpriteDef = { shapes: [{ kind: 'rect', x: 10, y: 10, w: 80, h: 80, fill: '#444' }] }
 
@@ -20,16 +21,20 @@ const noir: Plugin = {
       id: 'noir',
       rooms: NOIR_ROOMS,
       suspects: NOIR_SUSPECTS,
+      glossary: classicTheme.glossary,
       objects: {
-        chair: { noun: 'a barstool', standingOn: 'perched on a barstool', sprite: SPRITE, weight: 0.1 },
-        shelf: { noun: 'a safe', standingOn: 'on a safe', sprite: SPRITE, weight: 0.05 },
+        chair: { label: 'Barstool', noun: 'a barstool', standingOn: 'perched on a barstool', sprite: SPRITE, weight: 0.1 },
+        shelf: { label: 'Safe', noun: 'a safe', standingOn: 'on a safe', sprite: SPRITE, weight: 0.05 },
       },
     })
     api.addClueType({
       id: 'notInRow',
       scope: 'unary',
       evaluate: (clue, _puzzle, placement) => placement[clue.suspect].r !== clue.row,
-      render: (clue, puzzle) => `${puzzle.suspects[clue.suspect].name} avoided row ${Number(clue.row) + 1}.`,
+      parts: (clue, puzzle) => [
+        { kind: 'person', text: puzzle.suspects[clue.suspect].name, suspect: clue.suspect },
+        { kind: 'text', text: ` avoided row ${Number(clue.row) + 1}.` },
+      ],
     })
   },
 }
