@@ -59,7 +59,7 @@ h1, h2 { margin: 0; }
 }
 @media (max-width: 899px) {
   .suspects { display: flex; overflow-x: auto; scroll-snap-type: x proximity; padding-bottom: 0.8rem; }
-  .card { flex: 0 0 132px; scroll-snap-align: start; }
+  .card { flex: 0 0 112px; scroll-snap-align: start; }
 }
 .card { display: flex; flex-direction: column; transform: rotate(var(--tilt, 0deg)); }
 .card:nth-child(3n + 1) { --tilt: -0.8deg; }
@@ -116,6 +116,7 @@ h1, h2 { margin: 0; }
   color: #fff; font-size: clamp(0.45rem, 1.9vw, 0.85rem); font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase;
   -webkit-text-stroke: 3px rgba(0, 0, 0, 0.85); paint-order: stroke fill;
 }
+.room-label.end { left: auto; right: 3px; }
 
 .notice { min-height: 1.4rem; margin: 0.7rem 0 0; font-weight: 600; color: var(--accent); }
 .accuse, .win { margin-top: 0.6rem; padding: 0.8rem; border: 3px solid var(--border); background: var(--card); box-shadow: var(--shadow); }

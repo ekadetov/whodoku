@@ -144,7 +144,9 @@ export function Board({ puzzle, placements, marks, selected, conflicts, tool, gr
                 if (mode) onStroke([pos], mode)
               }}
             >
-              {labelAt.has(key) && <span className="room-label">{labelAt.get(key)}</span>}
+              {labelAt.has(key) && (
+                <span className={`room-label${c >= puzzle.size - 2 ? ' end' : ''}`}>{labelAt.get(key)}</span>
+              )}
               {cell.object && <Sprite sprite={spriteFor(puzzle, cell.object)} className="sprite" />}
               {marked && (
                 <svg className="mark" viewBox="0 0 100 100" aria-hidden="true">
