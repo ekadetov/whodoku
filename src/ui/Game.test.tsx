@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { pairs, tiny } from '../engine/fixtures'
+import { lonely, pairs, tiny } from '../engine/fixtures'
 import { loadState, STORAGE_KEY } from '../state/storage'
 import { Game } from './Game'
 
@@ -59,6 +59,11 @@ async function placeSolution(user: ReturnType<typeof userEvent.setup>) {
   for (const [i, pos] of pairs.entries()) await place(user, i, pos.r, pos.c)
 }
 
+// Ann is right; Bob, Cy and Di are not.
+async function placeWrong(user: ReturnType<typeof userEvent.setup>) {
+  for (const [i, pos] of lonely.entries()) await place(user, i, pos.r, pos.c)
+}
+
 const renderGame = (storage: Storage) =>
   render(<Game puzzle={tiny} dateKey="2026-10-02" storage={storage} now={() => 1_000_000} />)
 
@@ -112,26 +117,6 @@ describe('Game', () => {
     await user.click(screen.getByRole('button', { name: 'Hint' }))
     expect(screen.getByRole('status')).toHaveTextContent('contradict their clues')
     expect(screen.getByTestId('clue-1')).toHaveClass('failing')
-  })
-
-  it('solves the puzzle through accusation, rejecting the wrong suspect first', async () => {
-    const user = newUser()
-    const storage = fakeStorage()
-    renderGame(storage)
-    await placeSolution(user)
-    expect(screen.queryByTestId('accuse-1')).toBeNull()
-    await user.click(screen.getByRole('button', { name: /Submit/ }))
-
-    await user.click(screen.getByTestId('accuse-2'))
-    expect(screen.getByRole('status')).toHaveTextContent('Cy is innocent')
-
-    await user.click(screen.getByTestId('accuse-1'))
-    expect(screen.getByText('Case closed!')).toBeInTheDocument()
-    expect(screen.getByText(/Bob did it/)).toBeInTheDocument()
-
-    const saved = loadState(storage)
-    expect(saved.streak).toEqual({ current: 1, best: 1, lastSolved: '2026-10-02' })
-    expect(saved.history['2026-10-02'].solved).toBe(true)
   })
 
   it('restores progress from storage', async () => {
@@ -389,6 +374,86 @@ describe('Game notes and placing', () => {
     await place(user, 1, 0, 1)
     fireEvent.pointerEnter(screen.getByTestId('suspect-1'), { pointerType: 'mouse' })
     expect(document.querySelectorAll('.cell.hint')).toHaveLength(0)
+  })
+})
+
+describe('Game finishing', () => {
+  const submit = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: /Submit/ }))
+  const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
+
+  it('stamps a right arrangement, rings every token green, then names the killer and saves the streak', async () => {
+    const user = newUser()
+    const storage = fakeStorage()
+    renderGame(storage)
+    await placeSolution(user)
+    await submit(user)
+
+    expect(screen.getByText('CASE SOLVED')).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.querySelectorAll('.token.right')).toHaveLength(4)
+
+    advance(1500)
+    const dialog = screen.getByRole('dialog', { name: 'Result' })
+    expect(dialog).toHaveTextContent("You've found the murderer! Bob (B) killed Ann (A)!")
+    expect(dialog).toHaveTextContent('Streak: 1')
+    expect(screen.queryByRole('button', { name: 'Play again' })).toBeNull()
+
+    const saved = loadState(storage)
+    expect(saved.streak).toEqual({ current: 1, best: 1, lastSolved: '2026-10-02' })
+    expect(saved.history['2026-10-02'].solved).toBe(true)
+  })
+
+  it('rings the wrong tokens red and says how many were right', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await placeWrong(user)
+    await submit(user)
+
+    expect(screen.queryByText('CASE SOLVED')).toBeNull()
+    expect(document.querySelectorAll('.token.right')).toHaveLength(1)
+    expect(document.querySelectorAll('.token.wrong')).toHaveLength(3)
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      "You did not find everyone's position! 1 of 4 correct. The murderer escaped!",
+    )
+  })
+
+  it('freezes the board after a miss', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await placeWrong(user)
+    await submit(user)
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    await user.click(screen.getByTestId('suspect-0'))
+    holdOn(3, 3)
+    expect(screen.getByTestId('cell-3-3')).not.toHaveAttribute('data-occupant')
+    expect(screen.getByRole('button', { name: 'Hint' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Submit/ })).toBeDisabled()
+  })
+
+  it('offers Play again after a miss and clears the board', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await placeWrong(user)
+    await submit(user)
+    await user.click(screen.getByRole('button', { name: 'Play again' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.querySelectorAll('[data-occupant]')).toHaveLength(0)
+    expect(document.querySelectorAll('.token')).toHaveLength(0)
+    expect(screen.getByRole('button', { name: /Submit/ })).toBeDisabled()
+  })
+
+  it('shows the result again after a reload and keeps the board frozen', async () => {
+    const user = newUser()
+    const storage = fakeStorage()
+    const first = renderGame(storage)
+    await placeWrong(user)
+    await submit(user)
+    first.unmount()
+    renderGame(storage)
+    expect(screen.getByRole('dialog')).toHaveTextContent('1 of 4 correct')
+    expect(document.querySelectorAll('.token.wrong')).toHaveLength(3)
   })
 })
 
