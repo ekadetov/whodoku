@@ -10,9 +10,11 @@ export interface DayProgress {
   puzzleId?: string
   placements: Record<number, Pos>
   marks: string[]
+  notes?: Record<string, number[]>
   struck: number[]
   startedAt: number
   solvedAt: number | null
+  failedAt?: number | null
 }
 
 export interface SavedState {

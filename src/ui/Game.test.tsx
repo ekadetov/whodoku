@@ -57,11 +57,12 @@ describe('Game', () => {
     expect(screen.getByTestId('cell-0-3')).toHaveClass('conflict')
   })
 
-  it('marks an empty cell with an x when nobody is selected', async () => {
+  it('does nothing when an empty square is clicked and nobody is selected', async () => {
     const user = userEvent.setup()
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('cell-2-3'))
-    expect(screen.getByTestId('cell-2-3')).toHaveAttribute('data-marked', 'true')
+    expect(screen.getByTestId('cell-2-3')).not.toHaveAttribute('data-marked')
+    expect(screen.getByTestId('cell-2-3')).not.toHaveAttribute('data-occupant')
   })
 
   it('asks for a complete board before checking', async () => {

@@ -90,12 +90,11 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const onCellClick = (pos: Pos) => {
     if (solved || !isOccupiable(puzzle.cells[pos.r][pos.c])) return
     if (selected !== null) {
-      dispatch({ type: 'place', pos })
+      dispatch({ type: 'place', pos, cross: [] })
       return
     }
     const occupant = Object.entries(progress.placements).find(([, p]) => posKey(p) === posKey(pos))
     if (occupant) dispatch({ type: 'select', suspect: Number(occupant[0]) })
-    else dispatch({ type: 'toggleMark', pos })
   }
 
   const runCheck = (): boolean => {
@@ -181,7 +180,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
           onDrop={(suspect, pos) => {
             if (solved) return
             dispatch({ type: 'select', suspect })
-            dispatch({ type: 'place', pos })
+            dispatch({ type: 'place', pos, cross: [] })
           }}
         />
 
