@@ -12,7 +12,7 @@ interface ToolsPanelProps {
   onUndo: () => void
   onHint: () => void
   onSubmit: () => void
-  onClearAll: () => void
+  onClearAll: (toolId: string) => void
   onToggleHelp: () => void
 }
 
@@ -114,7 +114,7 @@ export function ToolsPanel({
             active={active === tool.id}
             disabled={locked}
             onPick={() => onTool(active === tool.id ? 'select' : tool.id)}
-            onHold={onClearAll}
+            onHold={() => onClearAll(tool.id)}
           />
         ))}
       <button type="button" className="action" disabled={locked || !canUndo} onClick={onUndo}>

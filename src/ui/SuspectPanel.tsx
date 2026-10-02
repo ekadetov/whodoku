@@ -116,9 +116,9 @@ export function SuspectPanel({
           <li
             key={suspect.name}
             className={`card${placements[i] ? ' placed' : ''}${i === puzzle.victim ? ' victim' : ''}${selected === i ? ' selected' : ''}${linked.has(i) ? ' linked' : ''}`}
-            onPointerEnter={(e) => e.pointerType !== 'touch' && onHover(i)}
+            onPointerEnter={(e) => e.pointerType !== 'touch' && !placements[i] && onHover(i)}
             onPointerLeave={(e) => e.pointerType !== 'touch' && onHover(null)}
-            onFocus={() => !pointerDriven.current && onHover(i)}
+            onFocus={() => !pointerDriven.current && !placements[i] && onHover(i)}
             onBlur={(e) => {
               if (!e.currentTarget.contains(e.relatedTarget as Node | null)) onHover(null)
             }}

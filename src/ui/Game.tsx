@@ -67,7 +67,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const conflicts = useMemo(() => findConflicts(progress.placements), [progress.placements])
   const marks = useMemo(() => new Set(progress.marks), [progress.marks])
   const failing = new Set(check?.key === placementKey ? check.failing : [])
-  const active = hovered ?? selected
+  const active = hovered !== null && !progress.placements[hovered] ? hovered : selected
   const highlight = useMemo<Highlight>(() => {
     if (active === null) return NO_HIGHLIGHT
     const hint = suspectHints(puzzle, active)
@@ -87,14 +87,18 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
   const readyToAccuse = complete !== null && !solved && isSolved(puzzle, complete)
   const culprit = complete !== null ? answerOf(puzzle, complete) : null
 
+  const crossesFor = (pos: Pos): Pos[] =>
+    puzzle.cells.flatMap((row, r) =>
+      row.flatMap((cell, c) => ((r === pos.r) !== (c === pos.c) && isOccupiable(cell) ? [{ r, c }] : [])),
+    )
+
+  const onHold = (pos: Pos) => {
+    if (!solved) dispatch({ type: 'place', pos, cross: crossesFor(pos) })
+  }
+
   const onCellClick = (pos: Pos) => {
     if (solved || !isOccupiable(puzzle.cells[pos.r][pos.c])) return
-    if (selected !== null) {
-      dispatch({ type: 'place', pos, cross: [] })
-      return
-    }
-    const occupant = Object.entries(progress.placements).find(([, p]) => posKey(p) === posKey(pos))
-    if (occupant) dispatch({ type: 'select', suspect: Number(occupant[0]) })
+    if (selected !== null) dispatch({ type: 'toggleNote', pos, suspect: selected })
   }
 
   const runCheck = (): boolean => {
@@ -122,8 +126,9 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
     if (runCheck()) setAccusing(true)
   }
 
-  const onClearAll = () => {
-    if (window.confirm('Clear the whole board?')) dispatch({ type: 'reset' })
+  const onClearAll = (toolId: string) => {
+    dispatch({ type: 'setTool', tool: toolId })
+    dispatch({ type: 'reset' })
   }
 
   const onAccuse = (suspect: number) => {
@@ -180,7 +185,7 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
           onDrop={(suspect, pos) => {
             if (solved) return
             dispatch({ type: 'select', suspect })
-            dispatch({ type: 'place', pos, cross: [] })
+            dispatch({ type: 'place', pos, cross: crossesFor(pos) })
           }}
         />
 
@@ -190,12 +195,14 @@ export function Game({ puzzle, dateKey, puzzleId, storage, now = Date.now }: Gam
             placements={progress.placements}
             marks={marks}
             selected={selected}
+            notes={progress.notes ?? {}}
             conflicts={conflicts}
             tool={registry.tools().find((t) => t.id === tool)}
             highlight={highlight}
             selectedClue={selectedClue}
             gridRef={boardRef}
             onCellClick={onCellClick}
+            onHold={onHold}
             onStroke={(cells, mode) => dispatch({ type: 'paint', cells, mode })}
           />
 

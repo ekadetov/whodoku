@@ -67,6 +67,7 @@ describe('ToolsPanel', () => {
     fireEvent.pointerUp(eraser)
     fireEvent.click(eraser)
     expect(onClearAll).toHaveBeenCalledTimes(1)
+    expect(onClearAll).toHaveBeenCalledWith('eraser')
     expect(onTool).not.toHaveBeenCalled()
 
     fireEvent.pointerDown(eraser)

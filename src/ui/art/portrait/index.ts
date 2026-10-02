@@ -141,3 +141,11 @@ export function portraitFor(suspect: Suspect): SpriteDef {
   }
   return { shapes }
 }
+
+/** The portrait without its background, for tokens on the board. */
+export function bustFor(suspect: Suspect): SpriteDef {
+  return { shapes: portraitFor(suspect).shapes.slice(1) }
+}
+
+/** The suspect's colour on the board (notes, badges, the hold ring): the background of their card. */
+export const portraitColor = (suspect: Suspect): string => portraitChoices(suspect).background

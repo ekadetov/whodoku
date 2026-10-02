@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { tiny } from '../engine/fixtures'
 import type { PaintMode, ToolDef } from '../engine/plugin'
@@ -7,7 +7,10 @@ import type { Pos } from '../engine/types'
 import { Board } from './Board'
 import type { Highlight } from './highlight'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 const X: ToolDef = { id: 'x', label: 'Mark', paint: ({ marked }) => (marked ? 'unmark' : 'mark') }
 const ERASER: ToolDef = { id: 'eraser', label: 'Eraser', paint: () => 'erase' }
@@ -22,22 +25,29 @@ interface SetupOptions {
   placements?: Record<number, Pos>
   highlight?: Highlight
   selectedClue?: string | null
+  selected?: number | null
+  notes?: Record<string, number[]>
+  verdict?: ReadonlyMap<number, boolean>
 }
 
 function setup(options: SetupOptions = {}) {
   const onStroke = vi.fn<(cells: Pos[], mode: PaintMode) => void>()
   const onCellClick = vi.fn<(pos: Pos) => void>()
+  const onHold = vi.fn<(pos: Pos) => void>()
   render(
     <Board
       puzzle={tiny}
       placements={options.placements ?? {}}
       marks={new Set(options.marks ?? [])}
-      selected={null}
+      selected={options.selected ?? null}
+      notes={options.notes ?? {}}
+      verdict={options.verdict}
       conflicts={new Set()}
       tool={options.tool ?? X}
       highlight={options.highlight}
       selectedClue={options.selectedClue}
       onCellClick={onCellClick}
+      onHold={onHold}
       onStroke={onStroke}
     />,
   )
@@ -46,7 +56,7 @@ function setup(options: SetupOptions = {}) {
   const down = (r: number, c: number) => fireEvent.pointerDown(grid, { ...center(r, c), pointerId: 1, button: 0 })
   const move = (r: number, c: number) => fireEvent.pointerMove(grid, { ...center(r, c), pointerId: 1 })
   const up = (r: number, c: number) => fireEvent.pointerUp(grid, { ...center(r, c), pointerId: 1 })
-  return { grid, onStroke, onCellClick, down, move, up }
+  return { grid, onStroke, onCellClick, onHold, down, move, up }
 }
 
 describe('Board strokes', () => {
@@ -259,5 +269,126 @@ describe('Board hints', () => {
     setup({ tool: SELECT, highlight: hint([], [3]) })
     expect(screen.getByTestId('cell-3-3')).toHaveClass('outlined')
     expect(screen.getByTestId('cell-0-0')).not.toHaveClass('outlined')
+  })
+})
+
+describe('Board notes and holding', () => {
+  const press = (r: number, c: number, init: Record<string, unknown> = {}) =>
+    fireEvent.pointerDown(screen.getByTestId(`cell-${r}-${c}`), { button: 0, pointerType: 'mouse', ...init })
+  const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms))
+  const ringIn = (r: number, c: number) => screen.getByTestId(`cell-${r}-${c}`).querySelector('svg.ring')
+
+  it('draws each note as the suspect\'s initial, several to a square', () => {
+    setup({ tool: SELECT, notes: { '2,3': [1, 3], '0,0': [2] } })
+    const notes = [...screen.getByTestId('cell-2-3').querySelectorAll('.note')]
+    expect(notes.map((n) => n.textContent)).toEqual(['B', 'D'])
+    expect(screen.getByTestId('cell-0-0').querySelectorAll('.note')).toHaveLength(1)
+    expect(screen.getByTestId('cell-0-0').querySelector('.note')).toHaveTextContent('C')
+  })
+
+  it('treats a short press as a click and places nothing', () => {
+    vi.useFakeTimers()
+    const { onCellClick, onHold } = setup({ tool: SELECT, selected: 1 })
+    press(2, 3)
+    advance(200)
+    fireEvent.pointerUp(screen.getByTestId('cell-2-3'))
+    fireEvent.click(screen.getByTestId('cell-2-3'), { detail: 1 })
+    advance(1000)
+    expect(onCellClick).toHaveBeenCalledWith({ r: 2, c: 3 })
+    expect(onHold).not.toHaveBeenCalled()
+  })
+
+  it('places after a hold of 600 ms and swallows the click that follows', () => {
+    vi.useFakeTimers()
+    const { onCellClick, onHold } = setup({ tool: SELECT, selected: 1 })
+    press(2, 3)
+    advance(599)
+    expect(onHold).not.toHaveBeenCalled()
+    advance(2)
+    expect(onHold).toHaveBeenCalledTimes(1)
+    expect(onHold).toHaveBeenCalledWith({ r: 2, c: 3 })
+    fireEvent.pointerUp(screen.getByTestId('cell-2-3'))
+    fireEvent.click(screen.getByTestId('cell-2-3'), { detail: 1 })
+    expect(onCellClick).not.toHaveBeenCalled()
+  })
+
+  it('shows a progress ring only after a short delay, and removes it on release', () => {
+    vi.useFakeTimers()
+    setup({ tool: SELECT, selected: 1 })
+    press(2, 3)
+    advance(100)
+    expect(ringIn(2, 3)).toBeNull()
+    advance(100)
+    expect(ringIn(2, 3)).not.toBeNull()
+    expect(ringIn(2, 3)!.querySelectorAll('circle')).toHaveLength(2)
+    fireEvent.pointerUp(screen.getByTestId('cell-2-3'))
+    expect(ringIn(2, 3)).toBeNull()
+  })
+
+  it('cancels the hold when the pointer leaves the square', () => {
+    vi.useFakeTimers()
+    const { onHold } = setup({ tool: SELECT, selected: 1 })
+    press(2, 3)
+    advance(300)
+    fireEvent.pointerLeave(screen.getByTestId('cell-2-3'), { pointerType: 'mouse' })
+    advance(1000)
+    expect(onHold).not.toHaveBeenCalled()
+    expect(ringIn(2, 3)).toBeNull()
+  })
+
+  it('does not start a hold on blocked, crossed-out or occupied squares', () => {
+    vi.useFakeTimers()
+    const { onHold } = setup({ tool: SELECT, selected: 1, marks: ['0,0'], placements: { 2: { r: 3, c: 3 } } })
+    press(1, 1)
+    press(0, 0)
+    press(3, 3)
+    advance(1000)
+    expect(onHold).not.toHaveBeenCalled()
+  })
+
+  it('does not hold without a selected card, with a stroke tool, or with a non-primary button', () => {
+    vi.useFakeTimers()
+    const none = setup({ tool: SELECT })
+    press(2, 3)
+    advance(1000)
+    expect(none.onHold).not.toHaveBeenCalled()
+    cleanup()
+    const stroke = setup({ tool: X, selected: 1 })
+    press(2, 3)
+    advance(1000)
+    expect(stroke.onHold).not.toHaveBeenCalled()
+    cleanup()
+    const right = setup({ tool: SELECT, selected: 1 })
+    press(2, 3, { button: 2 })
+    advance(1000)
+    expect(right.onHold).not.toHaveBeenCalled()
+  })
+
+  it('tints blocking squares while a card is selected', () => {
+    setup({ tool: SELECT, selected: 1 })
+    expect(screen.getByTestId('cell-1-1')).toHaveClass('unavailable')
+    expect(screen.getByTestId('cell-0-0')).not.toHaveClass('unavailable')
+    cleanup()
+    setup({ tool: SELECT })
+    expect(screen.getByTestId('cell-1-1')).not.toHaveClass('unavailable')
+  })
+})
+
+describe('Board tokens', () => {
+  it('shows a bust with the suspect\'s initial as a badge', () => {
+    setup({ tool: SELECT, placements: { 1: { r: 0, c: 1 } } })
+    const token = screen.getByTestId('cell-0-1').querySelector('.token')!
+    expect(token.querySelector('svg')).not.toBeNull()
+    expect(token.querySelector('.badge')).toHaveTextContent('B')
+  })
+
+  it('rings each token green or red once the answer is known', () => {
+    setup({
+      tool: SELECT,
+      placements: { 1: { r: 0, c: 1 }, 2: { r: 2, c: 2 } },
+      verdict: new Map([[1, true], [2, false]]),
+    })
+    expect(screen.getByTestId('cell-0-1').querySelector('.token')).toHaveClass('right')
+    expect(screen.getByTestId('cell-2-2').querySelector('.token')).toHaveClass('wrong')
   })
 })

@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent, RefObject } from 'react'
 import type { PaintMode, ToolDef } from '../engine/plugin'
 import { isOccupiable } from '../engine/types'
 import type { Pos, Puzzle } from '../engine/types'
 import { posKey } from '../state/reducer'
 import { labelFor, spriteFor } from './art/lookup'
-import { portraitFor } from './art/portrait'
+import { bustFor, portraitColor } from './art/portrait'
 import { Sprite } from './art/Sprite'
 import { roomSurface } from './art/texture'
 import { cellAt, lineCells } from './boardGeometry'
@@ -17,12 +17,15 @@ interface BoardProps {
   placements: Record<number, Pos>
   marks: ReadonlySet<string>
   selected: number | null
+  notes: Readonly<Record<string, readonly number[]>>
+  verdict?: ReadonlyMap<number, boolean>
   conflicts: ReadonlySet<string>
   tool: ToolDef | undefined
   highlight?: Highlight
   selectedClue?: string | null
   gridRef?: RefObject<HTMLDivElement | null>
   onCellClick: (pos: Pos) => void
+  onHold: (pos: Pos) => void
   onStroke: (cells: Pos[], mode: PaintMode) => void
 }
 
@@ -30,6 +33,9 @@ interface Stroke {
   mode: PaintMode
   cells: Pos[]
 }
+
+const HOLD_MS = 600
+const RING_DELAY_MS = 160
 
 const THICK = 'var(--wall-thick)'
 const THIN = 'var(--wall-thin)'
@@ -55,18 +61,35 @@ export function Board({
   placements,
   marks,
   selected,
+  notes,
+  verdict,
   conflicts,
   tool,
   highlight = NO_HIGHLIGHT,
   selectedClue = null,
   gridRef,
   onCellClick,
+  onHold,
   onStroke,
 }: BoardProps) {
   const strokeRef = useRef<Stroke | null>(null)
   const [preview, setPreview] = useState<Stroke | null>(null)
   const [hovered, setHovered] = useState<Pos | null>(null)
+  const [ringAt, setRingAt] = useState<string | null>(null)
+  const hold = useRef<{ ring: ReturnType<typeof setTimeout>; fire: ReturnType<typeof setTimeout> } | null>(null)
+  const swallowClick = useRef(false)
   const paint = tool?.paint
+  const colors = useMemo(() => puzzle.suspects.map(portraitColor), [puzzle.suspects])
+
+  const cancelHold = () => {
+    if (hold.current) {
+      clearTimeout(hold.current.ring)
+      clearTimeout(hold.current.fire)
+      hold.current = null
+    }
+    setRingAt(null)
+  }
+  useEffect(() => cancelHold, [])
 
   const occupantAt = new Map<string, number>()
   for (const [suspect, pos] of Object.entries(placements)) occupantAt.set(posKey(pos), Number(suspect))
@@ -123,6 +146,24 @@ export function Board({
     if (cells.length > 0) onStroke(cells, stroke.mode)
   }
 
+  const allowed = (pos: Pos) =>
+    isOccupiable(puzzle.cells[pos.r][pos.c]) && !marks.has(posKey(pos)) && !occupantAt.has(posKey(pos))
+
+  const startHold = (pos: Pos) => (e: PointerEvent<HTMLButtonElement>) => {
+    swallowClick.current = false
+    if (paint || selected === null || !allowed(pos) || (e.pointerType === 'mouse' && e.button !== 0)) return
+    cancelHold()
+    const key = posKey(pos)
+    hold.current = {
+      ring: setTimeout(() => setRingAt(key), RING_DELAY_MS),
+      fire: setTimeout(() => {
+        swallowClick.current = true
+        cancelHold()
+        onHold(pos)
+      }, HOLD_MS),
+    }
+  }
+
   const previewing = new Set(preview?.cells.map(posKey))
   const hoveredRoom = hovered ? puzzle.cells[hovered.r][hovered.c].room : null
   const hover = (pos: Pos | null) => (e: PointerEvent<HTMLElement>) => {
@@ -159,6 +200,7 @@ export function Board({
             outlined ? 'outlined' : '',
             conflicts.has(key) ? 'conflict' : '',
             selected !== null && occupant === selected ? 'picked' : '',
+            selected !== null && blocked ? 'unavailable' : '',
             previewing.has(key) && preview ? `stroke-${preview.mode}` : '',
           ]
           return (
@@ -173,7 +215,14 @@ export function Board({
               aria-disabled={blocked || undefined}
               className={classes.filter(Boolean).join(' ')}
               onPointerEnter={hover(pos)}
-              onPointerLeave={hover(null)}
+              onPointerLeave={(e) => {
+                cancelHold()
+                hover(null)(e)
+              }}
+              onPointerDown={startHold(pos)}
+              onPointerUp={cancelHold}
+              onPointerCancel={cancelHold}
+              onContextMenu={(e) => selected !== null && e.preventDefault()}
               style={{
                 ...roomSurface(cell.room),
                 ...(outlined ? { ['--edge-shadow' as string]: roomEdges(puzzle, r, c) } : {}),
@@ -183,6 +232,10 @@ export function Board({
                 borderRight: differs(r, c + 1) ? THICK : THIN,
               }}
               onClick={(e) => {
+                if (swallowClick.current) {
+                  swallowClick.current = false
+                  return
+                }
                 if (blocked) return
                 if (!paint) return onCellClick(pos)
                 const mode = e.detail === 0 ? modeAt(pos) : null
@@ -204,9 +257,45 @@ export function Board({
                   {selectedClue && <span className="tip clue">{selectedClue}</span>}
                 </>
               )}
+              {occupant === undefined && notes[key] && (
+                <span className="notes">
+                  {notes[key].map((suspect) => (
+                    <span key={suspect} className="note" style={{ color: colors[suspect] }}>
+                      {puzzle.suspects[suspect].name[0]}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {ringAt === key && selected !== null && (
+                <svg className="ring" viewBox="0 0 100 100" aria-hidden="true">
+                  <circle className="ring-outline" cx="50" cy="50" r="39.5" pathLength="100" transform="rotate(-90 50 50)" />
+                  <circle
+                    className="ring-fill"
+                    cx="50"
+                    cy="50"
+                    r="39.5"
+                    pathLength="100"
+                    transform="rotate(-90 50 50)"
+                    style={{ stroke: colors[selected] }}
+                  />
+                </svg>
+              )}
               {occupant !== undefined && (
-                <span className={`token${highlight.suspects.has(occupant) ? ' linked' : ''}`}>
-                  <Sprite sprite={portraitFor(puzzle.suspects[occupant])} />
+                <span
+                  className={[
+                    'token',
+                    highlight.suspects.has(occupant) ? 'linked' : '',
+                    verdict?.has(occupant) ? (verdict.get(occupant) ? 'right' : 'wrong') : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <span className="bust">
+                    <Sprite sprite={bustFor(puzzle.suspects[occupant])} />
+                  </span>
+                  <span className="badge" style={{ color: colors[occupant] }}>
+                    {puzzle.suspects[occupant].name[0]}
+                  </span>
                 </span>
               )}
             </button>

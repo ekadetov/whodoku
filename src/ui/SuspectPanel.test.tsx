@@ -154,6 +154,15 @@ describe('SuspectPanel hints', () => {
     expect(onHover).toHaveBeenLastCalledWith(null)
   })
 
+  it('does not light the board for a card whose suspect is already placed', () => {
+    const { onHover } = setup({ placements: { 2: { r: 0, c: 0 } } })
+    fireEvent.pointerEnter(screen.getByTestId('suspect-2'), { pointerType: 'mouse' })
+    fireEvent.focus(screen.getByTestId('suspect-2'))
+    expect(onHover).not.toHaveBeenCalled()
+    fireEvent.pointerEnter(screen.getByTestId('suspect-3'), { pointerType: 'mouse' })
+    expect(onHover).toHaveBeenCalledWith(3)
+  })
+
   it('ignores touch pointers, which have no hover', () => {
     const { onHover } = setup()
     fireEvent.pointerEnter(screen.getByTestId('suspect-2'), { pointerType: 'touch' })

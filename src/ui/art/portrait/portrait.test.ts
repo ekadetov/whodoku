@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Pronoun, Suspect } from '../../../engine/types'
 import { FACIAL_HAIR_POOLS, HAIR_STYLES, STYLE_POOLS } from './hair'
-import { portraitChoices, portraitFor } from '.'
+import { bustFor, portraitChoices, portraitColor, portraitFor } from '.'
 
 const NAMES = ['Ada', 'Bram', 'Cora', 'Dev', 'Elsa', 'Finn', 'Gus', 'Hana', 'Ivo', 'June', 'Kai', 'Lena']
 const suspect = (name: string, pronoun: Pronoun): Suspect => ({ name, pronoun })
@@ -61,5 +61,19 @@ describe('portrait styles', () => {
     const c = portraitChoices({ name: 'Partial', pronoun: 'he', look: { hairStyle: 'bald' } })
     expect(c.hairStyle).toBe('bald')
     expect(c.skin).toMatch(/^#/)
+  })
+})
+
+describe('bust and colour', () => {
+  it('draws the bust without the background', () => {
+    const who = suspect('Ada', 'she')
+    const full = portraitFor(who).shapes
+    expect(bustFor(who).shapes).toEqual(full.slice(1))
+  })
+
+  it('uses the portrait background as the suspect\'s colour', () => {
+    const who = suspect('Ada', 'she')
+    const background = portraitFor(who).shapes[0]
+    expect(background.kind === 'rect' && background.fill).toBe(portraitColor(who))
   })
 })

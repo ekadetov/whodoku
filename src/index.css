@@ -84,8 +84,7 @@ h1, h2 { margin: 0; }
   box-shadow: var(--shadow); font-size: 0.8rem; line-height: 1.25; text-align: center;
 }
 .card.victim .plate { color: var(--accent); }
-.card.placed .portrait-card { opacity: 0.55; }
-.card.placed .plate::after { content: ' (on board)'; font-family: var(--font-body); font-size: 0.6rem; font-weight: 600; }
+.card.placed { opacity: 0.5; }
 .card.selected .portrait-card, .card.selected .clue-card { border-color: var(--hint); }
 .card.selected .portrait-card { outline: 3px solid var(--hint); outline-offset: 1px; animation: breathe 1.6s ease-in-out infinite; }
 .card.selected .plate { color: var(--hint); }
@@ -116,10 +115,32 @@ h1, h2 { margin: 0; }
 .cell .mark { position: absolute; inset: 14%; width: 72%; height: 72%; pointer-events: none; }
 .cell .mark path { fill: none; stroke: var(--mark); stroke-width: 12; stroke-linecap: round; }
 .cell .token {
-  position: absolute; inset: 8%; z-index: 1; overflow: hidden; border: 3px solid var(--border); border-radius: 50%;
-  background: #fff; box-shadow: var(--shadow-small); pointer-events: none; animation: pop 0.25s ease-out;
+  position: absolute; inset: 6% 6% 0; z-index: 1; pointer-events: none; animation: pop 0.25s ease-out;
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.35));
 }
-.cell .token svg { display: block; width: 100%; height: 100%; }
+.cell .bust { position: absolute; inset: 0; overflow: hidden; }
+.cell .bust svg { display: block; width: 100%; height: 100%; }
+.cell .badge {
+  position: absolute; top: -4%; left: -4%; z-index: 2; font-size: clamp(0.7rem, 2.6vw, 1.25rem); font-weight: 800; line-height: 1;
+  -webkit-text-stroke: 3px #1f2430; paint-order: stroke fill;
+}
+.cell .token.linked .badge { color: var(--hint) !important; }
+.cell .token.right::after, .cell .token.wrong::after {
+  content: ''; position: absolute; inset: -4% -8% 6%; border: 4px solid; border-radius: 50%; animation: pop 0.3s ease-out;
+}
+.cell .token.right::after { border-color: #2e9e5b; }
+.cell .token.wrong::after { border-color: #c4373f; }
+.cell .notes { position: absolute; top: 2px; left: 3px; z-index: 4; display: flex; flex-wrap: wrap; gap: 0 2px; max-width: 78%; pointer-events: none; }
+.cell .note {
+  font-size: clamp(0.6rem, 2.2vw, 1.05rem); font-weight: 800; line-height: 1; animation: pop 0.2s ease-out;
+  -webkit-text-stroke: 3px #1f2430; paint-order: stroke fill;
+}
+.cell.unavailable { box-shadow: inset 0 0 0 100px rgba(209, 40, 50, 0.35); }
+.cell .ring { position: absolute; left: -33%; top: -33%; z-index: 7; width: 166%; height: 166%; overflow: visible; pointer-events: none; }
+.ring circle { fill: none; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: ringFill 440ms linear forwards; }
+.ring .ring-outline { stroke: rgba(0, 0, 0, 0.98); stroke-width: 20; }
+.ring .ring-fill { stroke-width: 10; }
+.cell { -webkit-touch-callout: none; }
 .cell.hint::after {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: rgba(47, 111, 237, 0.38); box-shadow: inset 0 0 0 3px var(--hint);
@@ -183,11 +204,13 @@ h1, h2 { margin: 0; }
 }
 .ghost svg { display: block; width: 100%; height: 100%; }
 
+@keyframes ringFill { to { stroke-dashoffset: 0; } }
 @keyframes pop { from { transform: scale(0.5); } 70% { transform: scale(1.12); } to { transform: scale(1); } }
 @keyframes breathe { 50% { outline-offset: 5px; } }
 @keyframes nudge { 40% { transform: translateY(-3px); } 60% { transform: translateY(0); } }
 @keyframes solved { 0% { background: #fff4d6; } 100% { background: var(--card); } }
 
 @media (prefers-reduced-motion: reduce) {
+  .ring { display: none; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

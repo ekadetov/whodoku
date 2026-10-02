@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { pairs, tiny } from '../engine/fixtures'
 import { loadState, STORAGE_KEY } from '../state/storage'
 import { Game } from './Game'
+
+beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true })
+})
 
 afterEach(() => {
   cleanup()
@@ -23,9 +27,32 @@ function fakeStorage() {
 
 type Storage = ReturnType<typeof fakeStorage>
 
+const newUser = () => userEvent.setup()
+
+function holdOn(r: number, c: number) {
+  const cell = screen.getByTestId(`cell-${r}-${c}`)
+  fireEvent.pointerDown(cell, { button: 0, pointerType: 'mouse' })
+  act(() => void vi.advanceTimersByTime(700))
+  fireEvent.pointerUp(cell)
+}
+
 async function place(user: ReturnType<typeof userEvent.setup>, suspect: number, r: number, c: number) {
   await user.click(screen.getByTestId(`suspect-${suspect}`))
-  await user.click(screen.getByTestId(`cell-${r}-${c}`))
+  holdOn(r, c)
+}
+
+// The board is 400px wide at the origin, so cell (r, c) centers at (100c + 50, 100r + 50).
+const mockBoard = () => {
+  const grid = screen.getByRole('grid')
+  vi.spyOn(grid, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 400, height: 400 } as DOMRect)
+  return grid
+}
+
+const stroke = (grid: HTMLElement, from: [number, number], to: [number, number]) => {
+  const at = ([r, c]: [number, number]) => ({ clientX: c * 100 + 50, clientY: r * 100 + 50, pointerId: 1 })
+  fireEvent.pointerDown(grid, { ...at(from), button: 0 })
+  fireEvent.pointerMove(grid, at(to))
+  fireEvent.pointerUp(grid, at(to))
 }
 
 async function placeSolution(user: ReturnType<typeof userEvent.setup>) {
@@ -37,7 +64,7 @@ const renderGame = (storage: Storage) =>
 
 describe('Game', () => {
   it('places a selected suspect on a cell', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     await place(user, 0, 0, 1)
     expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
@@ -48,17 +75,20 @@ describe('Game', () => {
     expect(screen.getByTestId('cell-1-1')).toHaveAttribute('aria-disabled', 'true')
   })
 
-  it('highlights suspects sharing a row', async () => {
-    const user = userEvent.setup()
+  it('highlights suspects that end up sharing a row after a cross was erased', async () => {
+    const user = newUser()
     renderGame(fakeStorage())
+    const grid = mockBoard()
     await place(user, 0, 0, 1)
+    await user.click(screen.getByTestId('tool-eraser'))
+    stroke(grid, [0, 3], [0, 3])
     await place(user, 1, 0, 3)
     expect(screen.getByTestId('cell-0-1')).toHaveClass('conflict')
     expect(screen.getByTestId('cell-0-3')).toHaveClass('conflict')
   })
 
   it('does nothing when an empty square is clicked and nobody is selected', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('cell-2-3'))
     expect(screen.getByTestId('cell-2-3')).not.toHaveAttribute('data-marked')
@@ -66,14 +96,14 @@ describe('Game', () => {
   })
 
   it('asks for a complete board before checking', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     await user.click(screen.getByRole('button', { name: 'Hint' }))
     expect(screen.getByRole('status')).toHaveTextContent('Place every suspect')
   })
 
   it('flags suspects whose clues fail', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     await place(user, 0, 0, 1)
     await place(user, 1, 1, 2)
@@ -85,7 +115,7 @@ describe('Game', () => {
   })
 
   it('solves the puzzle through accusation, rejecting the wrong suspect first', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     const storage = fakeStorage()
     renderGame(storage)
     await placeSolution(user)
@@ -105,7 +135,7 @@ describe('Game', () => {
   })
 
   it('restores progress from storage', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     const storage = fakeStorage()
     const first = renderGame(storage)
     await place(user, 0, 0, 1)
@@ -115,7 +145,7 @@ describe('Game', () => {
   })
 
   it('discards saved progress that belongs to a different puzzle id', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     const storage = fakeStorage()
     const first = render(<Game puzzle={tiny} dateKey="2026-10-02" puzzleId="a" storage={storage} now={() => 1_000_000} />)
     await place(user, 0, 0, 1)
@@ -125,7 +155,7 @@ describe('Game', () => {
   })
 
   it('keeps submit disabled until every suspect is placed', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     expect(screen.getByRole('button', { name: /Submit/ })).toBeDisabled()
     await placeSolution(user)
@@ -133,7 +163,7 @@ describe('Game', () => {
   })
 
   it('undoes the last placement', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
     await place(user, 0, 0, 1)
@@ -142,7 +172,7 @@ describe('Game', () => {
   })
 
   it('shows the rules on demand', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     expect(screen.queryByRole('region', { name: 'How to play' })).toBeNull()
     await user.click(screen.getByRole('button', { name: 'How to play' }))
@@ -151,21 +181,8 @@ describe('Game', () => {
 })
 
 describe('Game tools', () => {
-  // The board is 400px wide at the origin, so cell (r, c) centers at (100c + 50, 100r + 50).
-  const mockBoard = () => {
-    const grid = screen.getByRole('grid')
-    vi.spyOn(grid, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 400, height: 400 } as DOMRect)
-    return grid
-  }
-  const stroke = (grid: HTMLElement, from: [number, number], to: [number, number]) => {
-    const at = ([r, c]: [number, number]) => ({ clientX: c * 100 + 50, clientY: r * 100 + 50, pointerId: 1 })
-    fireEvent.pointerDown(grid, { ...at(from), button: 0 })
-    fireEvent.pointerMove(grid, at(to))
-    fireEvent.pointerUp(grid, at(to))
-  }
-
   it('crosses out a dragged row with the X tool and undoes it in one step', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     const grid = mockBoard()
     await user.click(screen.getByTestId('tool-x'))
@@ -176,7 +193,7 @@ describe('Game tools', () => {
   })
 
   it('removes a suspect and a cross with the eraser', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     const grid = mockBoard()
     await place(user, 0, 0, 1)
@@ -188,15 +205,15 @@ describe('Game tools', () => {
     expect(screen.getByTestId('cell-0-3')).not.toHaveAttribute('data-marked')
   })
 
-  it('goes back to placing suspects when a card is picked', async () => {
-    const user = userEvent.setup()
+  it('goes back to leaving notes when a card is picked', async () => {
+    const user = newUser()
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('tool-x'))
     expect(screen.getByTestId('tool-x')).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByTestId('suspect-0'))
     expect(screen.getByTestId('tool-x')).toHaveAttribute('aria-pressed', 'false')
     await user.click(screen.getByTestId('cell-0-1'))
-    expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
+    expect(screen.getByTestId('cell-0-1').querySelector('.note')).toHaveTextContent('A')
   })
 
   it('places a suspect dragged from its card onto the board', () => {
@@ -209,28 +226,27 @@ describe('Game tools', () => {
     expect(screen.getByTestId('cell-2-3')).toHaveAttribute('data-occupant', '2')
   })
 
-  it('clears the board when the eraser is held and the player confirms', async () => {
-    vi.useFakeTimers()
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  it('clears everything at once when the eraser is held, without asking, and keeps the eraser selected', async () => {
+    const user = newUser()
+    const confirm = vi.spyOn(window, 'confirm')
     renderGame(fakeStorage())
-    fireEvent.click(screen.getByTestId('suspect-0'))
-    fireEvent.click(screen.getByTestId('cell-0-1'))
-    expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
-    fireEvent.pointerDown(screen.getByTestId('tool-eraser'))
-    act(() => vi.advanceTimersByTime(900))
-    expect(confirm).toHaveBeenCalled()
-    expect(screen.getByTestId('cell-0-1')).not.toHaveAttribute('data-occupant')
-  })
+    await place(user, 0, 0, 1)
+    await user.click(screen.getByTestId('suspect-1'))
+    await user.click(screen.getByTestId('cell-2-3'))
+    expect(screen.getByTestId('cell-2-3').querySelector('.note')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
 
-  it('keeps the board when the player declines to clear it', () => {
-    vi.useFakeTimers()
-    vi.spyOn(window, 'confirm').mockReturnValue(false)
-    renderGame(fakeStorage())
-    fireEvent.click(screen.getByTestId('suspect-0'))
-    fireEvent.click(screen.getByTestId('cell-0-1'))
     fireEvent.pointerDown(screen.getByTestId('tool-eraser'))
-    act(() => vi.advanceTimersByTime(900))
-    expect(screen.getByTestId('cell-0-1')).toHaveAttribute('data-occupant', '0')
+    act(() => void vi.advanceTimersByTime(900))
+    fireEvent.pointerUp(screen.getByTestId('tool-eraser'))
+    fireEvent.click(screen.getByTestId('tool-eraser'))
+
+    expect(confirm).not.toHaveBeenCalled()
+    expect(screen.getByTestId('cell-0-1')).not.toHaveAttribute('data-occupant')
+    expect(screen.getByTestId('cell-2-3').querySelector('.note')).toBeNull()
+    expect(document.querySelector('[data-marked]')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    expect(screen.getByTestId('tool-eraser')).toHaveAttribute('aria-pressed', 'true')
   })
 })
 
@@ -259,7 +275,7 @@ describe('Game hints', () => {
   })
 
   it('keeps the selected card lit after the pointer leaves, and lets hover override it', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('suspect-1'))
     expect(screen.getByTestId('suspect-1').closest('li')).toHaveClass('selected')
@@ -272,7 +288,7 @@ describe('Game hints', () => {
   })
 
   it('repeats the selected clue when hovering a board cell', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     renderGame(fakeStorage())
     await user.click(screen.getByTestId('suspect-1'))
     fireEvent.pointerEnter(screen.getByTestId('cell-2-3'), { pointerType: 'mouse' })
@@ -281,7 +297,7 @@ describe('Game hints', () => {
   })
 
   it('lights another suspect\'s card, and their token, when a clue names them', async () => {
-    const user = userEvent.setup()
+    const user = newUser()
     const puzzle = { ...tiny, clues: [...tiny.clues, { type: 'northOf', suspect: 0, other: 1, delta: 1 }] }
     render(<Game puzzle={puzzle} dateKey="2026-10-02" storage={fakeStorage()} now={() => 1_000_000} />)
     await place(user, 1, 1, 0)
@@ -292,3 +308,87 @@ describe('Game hints', () => {
     expect(screen.getByTestId('suspect-1').closest('li')).not.toHaveClass('linked')
   })
 })
+
+describe('Game notes and placing', () => {
+  const crossed = () => [...document.querySelectorAll('[data-marked]')].map((c) => c.getAttribute('data-testid')).sort()
+  const notesAt = (r: number, c: number) => [...screen.getByTestId(`cell-${r}-${c}`).querySelectorAll('.note')].map((n) => n.textContent)
+
+  it('leaves a note on a click and removes it on a second click', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await user.click(screen.getByTestId('suspect-1'))
+    await user.click(screen.getByTestId('cell-2-3'))
+    expect(notesAt(2, 3)).toEqual(['B'])
+    await user.click(screen.getByTestId('cell-2-3'))
+    expect(notesAt(2, 3)).toEqual([])
+  })
+
+  it('lets several suspects leave notes in the same square', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    for (const suspect of [1, 3, 0]) {
+      await user.click(screen.getByTestId(`suspect-${suspect}`))
+      await user.click(screen.getByTestId('cell-2-3'))
+    }
+    expect(notesAt(2, 3)).toEqual(['B', 'D', 'A'])
+  })
+
+  it('does nothing for a hold when no card is selected', () => {
+    renderGame(fakeStorage())
+    holdOn(2, 3)
+    expect(screen.getByTestId('cell-2-3')).not.toHaveAttribute('data-occupant')
+    expect(crossed()).toEqual([])
+  })
+
+  it('places on a hold, crossing out the open squares of its row and column and clearing their notes', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await user.click(screen.getByTestId('suspect-0'))
+    await user.click(screen.getByTestId('cell-2-2'))
+    await place(user, 2, 2, 3)
+    expect(screen.getByTestId('cell-2-3')).toHaveAttribute('data-occupant', '2')
+    expect(crossed()).toEqual(['cell-0-3', 'cell-1-3', 'cell-2-1', 'cell-2-2', 'cell-3-3'])
+    expect(notesAt(2, 2)).toEqual([])
+    expect(screen.getByTestId('suspect-2').closest('li')).toHaveClass('placed')
+  })
+
+  it('takes neither a note nor a hold on a crossed-out square', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await place(user, 2, 2, 3)
+    await user.click(screen.getByTestId('suspect-0'))
+    await user.click(screen.getByTestId('cell-2-2'))
+    holdOn(2, 2)
+    expect(notesAt(2, 2)).toEqual([])
+    expect(screen.getByTestId('cell-2-2')).not.toHaveAttribute('data-occupant')
+  })
+
+  it('undoes a placement together with its crosses', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await place(user, 2, 2, 3)
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.getByTestId('cell-2-3')).not.toHaveAttribute('data-occupant')
+    expect(crossed()).toEqual([])
+  })
+
+  it('lets a placed suspect be selected again and moved, leaving the old crosses', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await place(user, 2, 2, 3)
+    const before = crossed()
+    await place(user, 2, 3, 2)
+    expect(screen.getByTestId('cell-3-2')).toHaveAttribute('data-occupant', '2')
+    expect(screen.getByTestId('cell-2-3')).not.toHaveAttribute('data-occupant')
+    for (const key of before) expect(crossed()).toContain(key)
+  })
+
+  it('does not light the board when a placed card is hovered', async () => {
+    const user = newUser()
+    renderGame(fakeStorage())
+    await place(user, 1, 0, 1)
+    fireEvent.pointerEnter(screen.getByTestId('suspect-1'), { pointerType: 'mouse' })
+    expect(document.querySelectorAll('.cell.hint')).toHaveLength(0)
+  })
+})
+
