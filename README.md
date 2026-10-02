@@ -9,6 +9,9 @@ player, generated entirely in the browser (no backend). Installable as a PWA and
 - Blocked squares (tables, shelves, plants, rocks, trees, TVs) cannot be occupied.
 - Each suspect has one or two clues. Rooms are outlined with dark borders and labeled.
 - The victim was alone with the killer. Once everyone fits, name the killer.
+- Tap a suspect card, then a square, or drag the card onto the grid. Tap a clue to cross it out.
+- Pick the X tool and drag across squares to cross them out. The eraser clears squares; hold it
+  to clear the whole board. Undo reverts the last action.
 - "Beside" means directly up, down, left or right, within the same room.
 
 The daily puzzle changes at 00:00 UTC. Difficulty follows the weekday: Mon and Tue are easy
@@ -37,7 +40,8 @@ Playwright needs a browser once: `npx playwright install chromium`.
   default theme, tools, procedural layouts, the clue generator and the daily puzzle source. Every
   generated puzzle is verified to have exactly one solution.
 - `src/state/` reducer, versioned localStorage persistence and streak logic.
-- `src/ui/` React components. They reach plugin content only through the registry.
+- `src/ui/` React components: suspect cards, board, tools panel, and `art/` (generated portraits,
+  data-driven sprites, room textures). They reach plugin content only through the registry.
 - `docs/design/` the specs and implementation plans.
 
 ### Writing a plugin
@@ -58,6 +62,9 @@ to GitHub Pages. The Vite `base` is `/whodoku/`; change it if the site moves to 
 Whodoku is an independent project. The genre it draws on ("Murdoku", by Manuel Garand) is a
 commercial product; its name, art, themes and published puzzles are not used here. Do a
 trademark search on the name before launching commercially.
+
+Portraits, sprites and textures are original and generated in code. Inter and Caveat are bundled
+through `@fontsource` under the SIL Open Font License.
 
 ## License
 
